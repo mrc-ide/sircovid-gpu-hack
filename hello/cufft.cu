@@ -1,4 +1,4 @@
-#include <r.h>
+#include <R.h>
 #include <cufft.h>
 /* This function is written for R to compute 1D FFT.
    n - [IN] the number of complex we want to compute

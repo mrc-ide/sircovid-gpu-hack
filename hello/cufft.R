@@ -18,4 +18,4 @@ z <- complex(real = stats::rnorm(num), imaginary = stats::rnorm(num))
 
 value_cpu <- fft(z)
 value_gpu <- fft_gpu(z)
-identical(value_cpu, value_gpu)
+all.equal(value_cpu, value_gpu, tolerance = 1e-13)

@@ -1,9 +1,10 @@
 dyn.load("add.so")
 
 add_gpu <- function(a, b) {
-  n <- length(x)
+  n <- length(a)
   stopifnot(length(b) == n)
-  .C("add", as.double(a), as.double(b), double(n), PACKAGE = "add")[[3L]]
+  .C("gvectorAdd", as.double(a), as.double(b), double(n), as.integer(n),
+     PACKAGE = "add")[[3L]]
 }
 
 a <- runif(1000)

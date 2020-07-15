@@ -13,3 +13,15 @@ test_that("fft_r agrees with R's fft", {
   expect_equal(fft_r(z, inverse = TRUE), fft(z, inverse = TRUE),
                tolerance = 1e-13)
 })
+
+test_that("add_c agrees with add_r", {
+  a <- runif(10)
+  b <- runif(10)
+  expect_identical(add_c(a, b), add_r(a, b))
+})
+
+test_that("add_call agrees with add_r", {
+  a <- runif(10)
+  b <- runif(10)
+  expect_identical(add_call(a, b), add_r(a, b))
+})

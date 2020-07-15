@@ -1,0 +1,18 @@
+Package: pkg
+Title: Example 'CUDA' Code in a Package
+Version: 0.1.0
+Authors@R: c(person("Rich", "FitzJohn", role = c("aut", "cre"),
+                    email = "rich.fitzjohn@gmail.com"),
+             person("Imperial College of Science, Technology and Medicine",
+                    role = "cph"))
+Author: Rich FitzJohn
+Maintainer: Rich FitzJohn <rich.fitzjohn@gmail.com>
+Description: A simple example getting 'CUDA' code added to an R
+    package and compiled. Not a real package, but in the structure of
+    one, as that's what 'dust' will produce.
+License: MIT + file LICENSE
+Encoding: UTF-8
+LazyData: true
+Suggests:
+    testthat
+RoxygenNote: 7.1.0

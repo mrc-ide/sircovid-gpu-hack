@@ -90,8 +90,10 @@ The `devtools` package can't be easily installed as it requires curl headers. We
 Automate all of this by running:
 
 ```
-curl -LO
+curl https://raw.githubusercontent.com/mrc-ide/sircovid-gpu-hack/master/Rprofile > ~/.Rprofile
 ```
+
+(**WARNING** - overwrites your Rprofile without warning)
 
 You can clone down a recent copy of `dust` with:
 

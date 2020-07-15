@@ -10,7 +10,17 @@ Compile the programs with
 ./compile.sh
 ```
 
+Then run the two example programs with:
+
 ```
 Rscript cufft.R
 Rscript add.R
 ```
+
+both of which should print
+
+```
+[1] TRUE
+```
+
+if the GPU and CPU versions agree.

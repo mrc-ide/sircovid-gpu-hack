@@ -27,7 +27,7 @@ void add_gpu(const double *a, const double *b, const int *n, double *value) {
   cudaMemcpy(d_b, b, *n * sizeof(double), cudaMemcpyHostToDevice);
 
   // GPU vector add
-  vector_add<<<gridSize,blockSize>>>(d_a, d_b, d_value, *n);
+  vector_add<<<gridSize,blockSize>>>(d_a, d_b, *n, d_value);
 
   // Copy output
   cudaMemcpy(value, d_value, *n * sizeof(double), cudaMemcpyDeviceToHost);

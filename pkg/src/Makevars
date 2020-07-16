@@ -1,6 +1,8 @@
 # -*-makefile-*-
-$(SHLIB) : add_c.o add.o
+OBJECTS = add_c.o add.o
+PKG_LIBS = -lcudart
 
+NVCC = nvcc
 NVCC_FLAGS = -O2 -G -I$(R_HOME)/include -Xcompiler -fPIC -x cu
 
 %.o: %.cu

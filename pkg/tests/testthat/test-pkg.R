@@ -25,3 +25,9 @@ test_that("add_call agrees with add_r", {
   b <- runif(10)
   expect_identical(add_call(a, b), add_r(a, b))
 })
+
+test_that("add_gpu agrees with add_r", {
+  a <- runif(10)
+  b <- runif(10)
+  expect_identical(add_call(a, b), add_r(a, b))
+})

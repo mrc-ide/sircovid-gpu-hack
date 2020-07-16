@@ -1,6 +1,7 @@
 #include <R.h>
 #include <Rinternals.h>
 #include <R_ext/Rdynload.h>
+#include "add.h"
 
 void add_c(const double *a, const double *b, const int *n, double *value) {
   for (int i = 0; i < *n; ++i) {
@@ -17,8 +18,9 @@ SEXP add_call(SEXP a, SEXP b) {
 }
 
 static R_CMethodDef c_methods[] = {
-  {"_add_c", (DL_FUNC) &add_c, 4, NULL},
-  {NULL,     NULL,             0, NULL}
+  {"_add_c",   (DL_FUNC) &add_c,   4, NULL},
+  {"_add_gpu", (DL_FUNC) &add_gpu, 4, NULL},
+  {NULL,       NULL,               0, NULL}
 };
 
 static const R_CallMethodDef call_methods[] = {

@@ -1,14 +1,14 @@
-extern "C" void gvectorAdd(double *A, double *B, double *C, int *n);
+#include "add.h"
 
 __global__ void
-vectorAdd(const double *A, const double *B, double *C, int numElements) {
+vector_add(const double *A, const double *B, double *C, int numElements) {
   int i = blockDim.x * blockIdx.x + threadIdx.x;
   if (i < numElements) {
     C[i] = A[i] + B[i];
   }
 }
 
-void gvectorAdd(double *A, double *B, double *C, int *n) {
+void add_gpu(double *A, double *B, double *C, int *n) {
   // Device Memory
   double *d_A, *d_B, *d_C;
 
@@ -27,7 +27,7 @@ void gvectorAdd(double *A, double *B, double *C, int *n) {
   cudaMemcpy(d_B, B, *n * sizeof(double), cudaMemcpyHostToDevice);
 
   // GPU vector add
-  vectorAdd<<<gridSize,blockSize>>>(d_A, d_B, d_C, *n);
+  vector_add<<<gridSize,blockSize>>>(d_A, d_B, d_C, *n);
 
   // Copy output
   cudaMemcpy(C, d_C, *n * sizeof(double), cudaMemcpyDeviceToHost);

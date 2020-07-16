@@ -24,5 +24,9 @@ R_HOME=$(Rscript -e 'cat(Sys.getenv("R_HOME"))')
 nvcc -O3 -G -I$R_HOME/include -Xcompiler -fpic -x cu -c cufft.cu -o cufft.o
 nvcc -G -L$R_HOME/lib -lcufft -lR --shared -o cufft.so cufft.o
 
+# This one compiles some code with gcc, some with nvcc and links with
+# g++; this is the model that we will need to use in dust models.
+gcc -O2 -I$R_HOME/include -g -O2 -fPIC -c add_c.c -o add_c.o
 nvcc -O3 -G -I$R_HOME/include -Xcompiler -fpic -x cu -c add.cu -o add.o
-nvcc -G -L$R_HOME/lib -lR --shared -o add.so add.o
+g++ -std=gnu++11 -shared -L$R_HOME/lib -Wl,-rpath,$R_HOME/lib \
+    -lcudart -o add.so add_c.o add.o -L$R_HOME/lib -lR

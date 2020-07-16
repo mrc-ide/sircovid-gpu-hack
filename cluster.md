@@ -106,3 +106,17 @@ Confirm everything works by compiling `dust` and running its tests:
 ```r
 .test_package("dust")
 ```
+
+## Other
+
+The default directory permissions are 777 which leads to unreadable colours by default. I followed [this stackoverflow answer](https://unix.stackexchange.com/a/241735) and generated a `~/.dircolors` file:
+
+```
+dircolors -p > ~/.dircolors
+```
+
+then changed `STICKY_OTHER_WRITABLE` and `OTHER_WRITABLE` to be the same as directories (`01;34`). Force changes to take effect without restarting by running
+
+```
+eval "$(dircolors -b ~/.dircolors)" || eval "$(dircolors -b)"
+```

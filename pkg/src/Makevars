@@ -1,0 +1,7 @@
+# -*-makefile-*-
+$(SHLIB) : add_c.o add.o
+
+NVCC_FLAGS = -O2 -G -I$(R_HOME)/include -Xcompiler -fPIC -x cu
+
+%.o: %.cu
+	$(NVCC) $(NVCC_FLAGS) -c $< -o $@

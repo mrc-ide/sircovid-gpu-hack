@@ -1,38 +1,38 @@
 #include "add.h"
 
-__global__ void
-vector_add(const double *A, const double *B, double *C, int numElements) {
+__global__
+void vector_add(const double *a, const double *b, int n, double *value) {
   int i = blockDim.x * blockIdx.x + threadIdx.x;
-  if (i < numElements) {
-    C[i] = A[i] + B[i];
+  if (i < n) {
+    value[i] = a[i] + b[i];
   }
 }
 
-void add_gpu(double *A, double *B, double *C, int *n) {
+void add_gpu(const double *a, const double *b, const int *n, double *value) {
   // Device Memory
-  double *d_A, *d_B, *d_C;
+  double *d_a, *d_b, *d_value;
 
   // Define the execution configuration
   dim3 blockSize(256, 1, 1);
   dim3 gridSize(1, 1, 1);
   gridSize.x = (*n + blockSize.x - 1) / blockSize.x;
 
-  // Allocate output array
-  cudaMalloc((void**)&d_A, *n * sizeof(double));
-  cudaMalloc((void**)&d_B, *n * sizeof(double));
-  cudaMalloc((void**)&d_C, *n * sizeof(double));
+  // allocate output array
+  cudaMalloc((void**)&d_a, *n * sizeof(double));
+  cudaMalloc((void**)&d_b, *n * sizeof(double));
+  cudaMalloc((void**)&d_value, *n * sizeof(double));
 
   // copy data to device
-  cudaMemcpy(d_A, A, *n * sizeof(double), cudaMemcpyHostToDevice);
-  cudaMemcpy(d_B, B, *n * sizeof(double), cudaMemcpyHostToDevice);
+  cudaMemcpy(d_a, a, *n * sizeof(double), cudaMemcpyHostToDevice);
+  cudaMemcpy(d_b, b, *n * sizeof(double), cudaMemcpyHostToDevice);
 
   // GPU vector add
-  vector_add<<<gridSize,blockSize>>>(d_A, d_B, d_C, *n);
+  vector_add<<<gridSize,blockSize>>>(d_a, d_b, d_value, *n);
 
   // Copy output
-  cudaMemcpy(C, d_C, *n * sizeof(double), cudaMemcpyDeviceToHost);
+  cudaMemcpy(value, d_value, *n * sizeof(double), cudaMemcpyDeviceToHost);
 
-  cudaFree(d_A);
-  cudaFree(d_B);
-  cudaFree(d_C);
+  cudaFree(d_a);
+  cudaFree(d_b);
+  cudaFree(d_value);
 }

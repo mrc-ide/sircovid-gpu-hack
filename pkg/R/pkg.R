@@ -18,5 +18,11 @@ add_call <- function(a, b) {
   .Call(`_add_call`, as.double(a), as.double(b))
 }
 
+add_gpu <- function(a, b) {
+  n <- length(a)
+  stopifnot(length(b) == n)
+  .C(`_add_gpu`, as.double(a), as.double(b), as.integer(n), double(n))[[4]]
+}
+
 ##' @useDynLib pkg, .registration = TRUE
 NULL

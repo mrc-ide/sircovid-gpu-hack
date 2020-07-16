@@ -30,7 +30,6 @@ static const R_CallMethodDef call_methods[] = {
 
 void R_init_pkg(DllInfo *info) {
   R_registerRoutines(info, c_methods, call_methods, NULL, NULL);
-  // Disable this for now
-  // R_useDynamicSymbols(info, FALSE);
-  // R_forceSymbols(info, TRUE);
+  R_useDynamicSymbols(info, FALSE);
+  R_forceSymbols(info, TRUE);
 }

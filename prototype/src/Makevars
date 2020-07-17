@@ -1,0 +1,9 @@
+# -*-makefile-*-
+OBJECTS = cpp11.o sirs.o
+# PKG_LIBS = -lcudart
+
+NVCC = nvcc
+NVCC_FLAGS = -O2 -G -I$(R_HOME)/include -Xcompiler -fPIC -x cu
+
+%.o: %.cu
+	$(NVCC) $(NVCC_FLAGS) -c $< -o $@

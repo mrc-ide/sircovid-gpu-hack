@@ -1,4 +1,4 @@
-## MRCGIDA GPU Hackathon Notes
+# MRCGIDA GPU Hackathon Notes
 
 The hackathon raplab docs explain getting started and are posted in the help channel. This doc picks up assuming all the Okta bits are set up and tested.
 
@@ -22,13 +22,16 @@ or if you do not need the GPU:
 srun --ntasks=5 --nodes=1 --cpus-per-task=2 --partition=batch --time=4:00:00 --pty /bin/bash
 ```
 
-Which starts an interactive job and sets you up with a terminal there. It will look much the same but the node name will have changed from `dgx0181` to `cpu0123` -- numbers will probably vary!
+Which starts an interactive job and sets you up with a terminal there. It will look much the same but the node name will have changed from `cpu0181` to `dgx0123` -- numbers will probably vary!
 
 We need to load the R modules - the organisers have set us up with 4.0.2 which is the same as travis is using
 
 ```
-module load Core/gcc/8.4.0 gcc/8.4.0/r/4.0.2
+module load Core/gcc/8.4.0 gcc/8.4.0/openjdk/11.0.2 gcc/8.4.0/r/4.0.2
+module load cuda nvcompilers
 ```
+
+
 
 It's not clear yet if we share a workspace or not, but installing packages takes a while.
 

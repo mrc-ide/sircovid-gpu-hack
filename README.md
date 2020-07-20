@@ -1,3 +1,3 @@
-## MRC GIDA / Sheffield GPU Hack
+# MRC GIDA / Sheffield GPU Hack
 
 Notes, resources, scratchpad etc.

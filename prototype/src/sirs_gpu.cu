@@ -115,3 +115,8 @@ std::vector<float> sircovid_main(float alpha, float beta, float gamma, int I_ini
 
   return ret;
 }
+
+// I *think* that this is enough to trigger creation of the real function?
+template <>
+void* dust_gpu_alloc<sireinfect>(sireinfect::init_t data, int step,
+                                 int n_particles, int n_threads, int seed);

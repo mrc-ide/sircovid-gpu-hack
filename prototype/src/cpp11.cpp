@@ -3,6 +3,13 @@
 
 #include "cpp11/declarations.hpp"
 
+// sirs_gpu_driver.cpp
+cpp11::writable::doubles prototype(double alpha, double beta, double gamma, int I0, int n_particles, int n_steps, int n_record, int seed);
+extern "C" SEXP _prototype_prototype(SEXP alpha, SEXP beta, SEXP gamma, SEXP I0, SEXP n_particles, SEXP n_steps, SEXP n_record, SEXP seed) {
+  BEGIN_CPP11
+    return cpp11::as_sexp(prototype(cpp11::unmove(cpp11::as_cpp<double>(alpha)), cpp11::unmove(cpp11::as_cpp<double>(beta)), cpp11::unmove(cpp11::as_cpp<double>(gamma)), cpp11::unmove(cpp11::as_cpp<int>(I0)), cpp11::unmove(cpp11::as_cpp<int>(n_particles)), cpp11::unmove(cpp11::as_cpp<int>(n_steps)), cpp11::unmove(cpp11::as_cpp<int>(n_record)), cpp11::unmove(cpp11::as_cpp<int>(seed))));
+  END_CPP11
+}
 // sirs.cpp
 SEXP dust_sirs_alloc(cpp11::list r_data, size_t step, size_t n_particles, size_t n_threads, size_t seed);
 extern "C" SEXP _prototype_dust_sirs_alloc(SEXP r_data, SEXP step, SEXP n_particles, SEXP n_threads, SEXP seed) {
@@ -71,6 +78,7 @@ extern SEXP _prototype_dust_sirs_set_index(SEXP, SEXP);
 extern SEXP _prototype_dust_sirs_set_state(SEXP, SEXP, SEXP);
 extern SEXP _prototype_dust_sirs_state(SEXP, SEXP);
 extern SEXP _prototype_dust_sirs_step(SEXP);
+extern SEXP _prototype_prototype(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 
 static const R_CallMethodDef CallEntries[] = {
     {"_prototype_dust_sirs_alloc",     (DL_FUNC) &_prototype_dust_sirs_alloc,     5},
@@ -81,6 +89,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_prototype_dust_sirs_set_state", (DL_FUNC) &_prototype_dust_sirs_set_state, 3},
     {"_prototype_dust_sirs_state",     (DL_FUNC) &_prototype_dust_sirs_state,     2},
     {"_prototype_dust_sirs_step",      (DL_FUNC) &_prototype_dust_sirs_step,      1},
+    {"_prototype_prototype",           (DL_FUNC) &_prototype_prototype,           8},
     {NULL, NULL, 0}
 };
 }

@@ -4,7 +4,7 @@
 // Not sure if we want the RNG object in CUDA
 // #include "rng.hpp"
 #include "gpu/xoshiro.hpp"
-#include <dust/distr/binomial.hpp>
+#include "gpu/distr/binomial.hpp"
 
 #include <utility>
 #ifdef _OPENMP

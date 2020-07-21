@@ -205,9 +205,9 @@ public:
   Dust(const init_t data, const size_t step, const size_t n_particles,
        const size_t n_threads, const size_t seed) :
     _n_threads(n_threads),
-    _model(NULL),
-    _particle_y_addrs(NULL),
-    _particle_y_swap_addrs(NULL) {
+    _model(nullptr),
+    _particle_y_addrs(nullptr),
+    _particle_y_swap_addrs(nullptr) {
     initialise(data, step, n_particles);
 
     // Set up rng streams for each particle

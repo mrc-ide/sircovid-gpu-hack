@@ -44,9 +44,6 @@ void run_particles(T* model,
   for (int p_idx = index; p_idx < n_particles; p_idx += stride) {
     int curr_step = step;
     while (curr_step < step_end) {
-      // printf("idx:%d step:%d S:%f I:%f R:%f\n", p_idx, curr_step,
-      //  particle_y[p_idx][0], particle_y[p_idx][1], particle_y[p_idx][2]);
-      // printf("s:%lu %lu %lu %lu\n", rng_state[0], rng_state[1], rng_state[2], rng_state[3]);
       model->update(curr_step,
                     particle_y[p_idx],
                     rng_state + p_idx * XOSHIRO_WIDTH,
@@ -108,7 +105,7 @@ public:
       _y_swap_device = std::exchange(other._y_swap_device, nullptr);
     }
     return *this;
-	}
+  }
 
   real_t * y_addr() { return _y_device; };
   real_t * y_swap_addr() { return _y_swap_device; };
@@ -155,9 +152,16 @@ public:
     */
   }
 
-  void update(const Particle<T> other) {
+  void set_state(const Particle<T> other) {
     _y_swap = other._y;
     y_swap_to_device();
+  }
+
+  void set_state(typename std::vector<real_t>::const_iterator state) {
+    for (size_t i = 0; i < _y.size(); ++i, ++state) {
+      _y[i] = *state;
+    }
+    y_to_device();
   }
 
 private:
@@ -182,6 +186,11 @@ private:
               cudaMemcpyDefault));
     cudaDeviceSynchronize();
   }
+  void y_to_device() {
+    cdpErrchk(cudaMemcpy(_y_device, _y.data(), _y.size() * sizeof(real_t),
+              cudaMemcpyDefault));
+    cudaDeviceSynchronize();
+  }
 };
 
 template <typename T>
@@ -192,37 +201,16 @@ public:
   typedef typename T::real_t real_t;
   // typedef typename dust::RNG<real_t, int_t> rng_t;
 
-  Dust(const init_t data, const size_t step,
-       const std::vector<size_t> index_y,
-       const size_t n_particles,
-       const size_t n_threads,
-       const size_t seed) :
-    _index_y(index_y), _n_threads(n_threads) {
-
-    std::vector<real_t*> y_ptrs;
-    std::vector<real_t*> y_swap_ptrs;
-    for (size_t i = 0; i < n_particles; ++i) {
-      _particles.push_back(Particle<T>(data, step));
-      y_ptrs.push_back(_particles[i].y_addr());
-      y_swap_ptrs.push_back(_particles[i].y_swap_addr());
-    }
-    cdpErrchk(cudaMalloc((void** )&_particle_y_addrs, y_ptrs.size() * sizeof(real_t*)));
-    cdpErrchk(cudaMemcpy(_particle_y_addrs, y_ptrs.data(), y_ptrs.size() * sizeof(real_t*),
-	              cudaMemcpyHostToDevice));
-    cdpErrchk(cudaMalloc((void** )&_particle_y_swap_addrs, y_swap_ptrs.size() * sizeof(real_t*)));
-    cdpErrchk(cudaMemcpy(_particle_y_swap_addrs, y_swap_ptrs.data(), y_swap_ptrs.size() * sizeof(real_t*),
-	              cudaMemcpyHostToDevice));
-
-    // Copy the model
-    cdpErrchk(cudaMallocManaged((void** )&_model, sizeof(T)));
-    *_model = T(data);
+  Dust(const init_t data, const size_t step, const size_t n_particles,
+       const size_t n_threads, const size_t seed) :
+    _n_threads(n_threads) {
+    initialise(data, step, particles);
 
     // Set up rng streams for each particle
     cdpErrchk(cudaMallocManaged((void** )&_rng_state, n_particles * XOSHIRO_WIDTH * sizeof(uint64_t)));
     dust::Xoshiro rng(seed);
     for (int i = 0; i < n_particles; i++) {
       uint64_t* current_state = rng.get_rng_state();
-      // printf("s:%lu %lu %lu %lu\n", current_state[0], current_state[1], current_state[2], current_state[3]);
       for (int state_idx = 0; state_idx < XOSHIRO_WIDTH; state_idx++) {
         _rng_state[i * XOSHIRO_WIDTH + state_idx] = current_state[state_idx];
       }
@@ -239,10 +227,31 @@ public:
   }
 
   void reset(const init_t data, const size_t step) {
-    size_t n_particles = _particles.size();
-    _particles.clear();
+    const size_t n_particles = _particles.size();
+    initialise(data, step, n_particles);
+  }
+
+  // It's the callee's responsibility to ensure that index is in
+  // range [0, n-1]
+  void set_index(const std::vector<size_t>& index) {
+    _index = index;
+  }
+
+  void set_step(const size_t step) {
+    const size_t n_particles = _particles.size();
     for (size_t i = 0; i < n_particles; ++i) {
-      _particles.push_back(Particle<T>(data, step));
+      _particles[i].set_step(step);
+    }
+  }
+
+  void set_step(const std::vector<size_t>& step) {
+    const size_t n_particles = _particles.size();
+    for (size_t i = 0; i < n_particles; ++i) {
+      _particles[i].set_step(step[i]);
+    }
+    const auto r = std::minmax_element(step.begin(), step.end());
+    if (*r.second > *r.first) {
+      run(*r.second);
     }
   }
 
@@ -315,12 +324,15 @@ public:
   size_t n_particles() const {
     return _particles.size();
   }
+
   size_t n_state() const {
     return _index_y.size();
   }
+
   size_t n_state_full() const {
     return _particles.front().size();
   }
+
   size_t step() const {
     return _particles.front().step();
   }
@@ -339,6 +351,43 @@ private:
   real_t** _particle_y_addrs;
   real_t** _particle_y_swap_addrs;
   uint64_t* _rng_state;
+
+  void initialise(const init_t data, const size_t step,
+                  const size_t n_particles) {
+    _particles.clear();
+    _particles.reserve(n_particles);
+
+    // TODO: this is not safe to run multiple times (as it is it can
+    // be run only from the constructor). If we run again we need to
+    // clear these:
+    // cudaFree(_y_device);
+    // cudaFree(_y_swap_device);
+
+    std::vector<real_t*> y_ptrs;
+    std::vector<real_t*> y_swap_ptrs;
+    for (size_t i = 0; i < n_particles; ++i) {
+      _particles.push_back(Particle<T>(data, step));
+      y_ptrs.push_back(_particles[i].y_addr());
+      y_swap_ptrs.push_back(_particles[i].y_swap_addr());
+    }
+    cdpErrchk(cudaMalloc((void** )&_particle_y_addrs, y_ptrs.size() * sizeof(real_t*)));
+    cdpErrchk(cudaMemcpy(_particle_y_addrs, y_ptrs.data(), y_ptrs.size() * sizeof(real_t*),
+	              cudaMemcpyHostToDevice));
+    cdpErrchk(cudaMalloc((void** )&_particle_y_swap_addrs, y_swap_ptrs.size() * sizeof(real_t*)));
+    cdpErrchk(cudaMemcpy(_particle_y_swap_addrs, y_swap_ptrs.data(), y_swap_ptrs.size() * sizeof(real_t*),
+	              cudaMemcpyHostToDevice));
+
+    // Copy the model
+    cdpErrchk(cudaMallocManaged((void** )&_model, sizeof(T)));
+    *_model = T(data);
+
+    const size_t n = n_state_full();
+    _index.clear();
+    _index.reserve(n);
+    for (size_t i = 0; i < n; ++i) {
+      _index.push_back(i);
+    }
+  }
 };
 
 #endif

@@ -328,7 +328,7 @@ public:
   void reorder(const std::vector<size_t>& index) {
     for (size_t i = 0; i < _particles.size(); ++i) {
       size_t j = index[i];
-      _particles[i].update(_particles[j]);
+      _particles[i].set_state(_particles[j]);
     }
     for (auto& p : _particles) {
       p.swap();

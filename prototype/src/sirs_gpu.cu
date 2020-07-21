@@ -42,8 +42,8 @@ public:
     return state;
   }
   __device__
-  void update(size_t step, const real_t * state, dust::RNGState& rng_state,
-              dust::distr::rnorm<real_t>* rnorm, real_t * state_next) {
+  void update(size_t step, const real_t * state, real_t * state_next,
+              dust::RNGState& rng_state, dust::distr::rnorm<real_t>* rnorm) {
     const real_t S = state[0];
     const real_t I = state[1];
     const real_t R = state[2];

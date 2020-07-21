@@ -34,9 +34,9 @@ class pRNG { // # nocov
 public:
   pRNG(const size_t n, const uint64_t seed) {
     dust::Xoshiro rng(seed);
-    std::vector<dust::distr::RnormBuffer<real_t>> rnorm_buffers;
+    std::vector<dust::distr::rnorm<real_t>> rnorm_buffers;
     for (int i = 0; i < n; i++) {
-      rnorm_buffers.push_back(dust::distr::RnormBuffer<real_t>());
+      rnorm_buffers.push_back(dust::distr::rnorm<real_t>());
       _rngs.push_back(rng);
       rng.jump();
     }
@@ -122,11 +122,5 @@ private:
   uint64_t* _d_rng_state;
   dust::distr::rnorm<real_t>* _rnorm_buffers;
 };
-
-namespace distr {
-
-
-}
-}
 
 #endif

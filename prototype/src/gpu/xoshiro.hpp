@@ -30,7 +30,7 @@ static inline uint64_t rotl(const uint64_t x, int k) {
 
 __host__ __device__
 inline uint64_t gen_rand(RNGState& state) {
-  const uint64_t result = rotl(state.s0 * 5, 7) * 9;
+  const uint64_t result = rotl(state.s1 * 5, 7) * 9;
   //printf("r:%lu s:%lu %lu %lu %lu\n", result, state[0], state[1], state[2], state[3]);
 
   const uint64_t t = state.s1 << 17;

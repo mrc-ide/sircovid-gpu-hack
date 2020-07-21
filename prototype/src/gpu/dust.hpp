@@ -50,10 +50,11 @@ void run_particles(T** model,
     while (curr_step < step_end) {
       model[p_idx]->update(curr_step,
                             particle_y[p_idx],
+                            particle_y_swap[p_idx]
                             rng,
-                            rnorm_buffers + p_idx,
-                            particle_y_swap[p_idx]);
+                            rnorm_buffers + p_idx);
       __syncwarp();
+
       curr_step++;
       real_t* tmp = particle_y[p_idx];
       particle_y[p_idx] = particle_y_swap[p_idx];

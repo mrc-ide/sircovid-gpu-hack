@@ -1,8 +1,4 @@
 #include <cpp11/list.hpp>
-#include <vector>
-std::vector<float> sircovid_main(float alpha, float beta, float gamma, int I0,
-                                 int n_particles, int n_steps, int n_record,
-                                 int seed);
 
 // These only exist so that cpp11 finds them as it can't look within
 // .cu files

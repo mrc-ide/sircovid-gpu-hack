@@ -66,55 +66,6 @@ private:
   init_t internal;
 };
 
-std::vector<float> sircovid_main(float alpha, float beta, float gamma, int I_ini,
-                                 int n_particles, int n_steps, int n_record,
-                                 int seed) {
-  int_t S_ini = 1000;
-
-  // Run CUDA initialisation
-  // Hard coded device 0
-  cudaSetDevice(0);
-  cudaDeviceReset();
-
-  // Set up dust object
-  sireinfect::init_t data;
-  data.initial_R = 0;
-  data.I_ini = I_ini;
-  data.alpha = alpha;
-  data.beta = beta;
-  data.gamma = gamma;
-  data.S_ini = S_ini;
-  data.initial_I = data.I_ini;
-  data.initial_S = data.S_ini;
-  data.p_IR = 1 - std::exp(- data.gamma);
-  data.p_RS = 1 - std::exp(- data.alpha);
-
-  // Initial state, first step, n_particles, cpu_threads, seed
-  Dust<sireinfect> dust_obj(data, 0, n_particles, 2, seed);
-
-  // Run particles
-  std::vector<real_t> state(dust_obj.n_particles() * dust_obj.n_state_full());
-
-  std::vector<float> ret;
-
-  dust_obj.state_full(state);
-  for (size_t i = 0; i < state.size(); ++i) {
-    ret.push_back(state[i]);
-  }
-
-  for (size_t i = 0; i < n_steps; ++i) {
-    dust_obj.run(i + 1);
-    if (i % n_record == 0) {
-      dust_obj.state_full(state);
-      for (int j = 0; j < state.size(); ++j) {
-        ret.push_back(state[j]);
-      }
-    }
-  }
-
-  return ret;
-}
-
 #include <array>
 #include <cpp11/R.hpp>
 #include <cpp11/sexp.hpp>

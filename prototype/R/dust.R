@@ -55,3 +55,60 @@ sirs <- R6::R6Class(
       private$data
     }
   ))
+
+sireinfect <- R6::R6Class(
+  "dust",
+  cloneable = FALSE,
+
+  private = list(
+    data = NULL,
+    ptr = NULL
+  ),
+
+  public = list(
+    initialize = function(data, step, n_particles, n_threads = 1L,
+                          seed = 1L) {
+      res <- dust_sireinfect_alloc(data, step, n_particles,
+                        n_threads, seed)
+      private$ptr <- res[[1L]]
+      private$data <- res[[2L]]
+    },
+
+    name = function() {
+      "sireinfect"
+    },
+
+    run = function(step_end) {
+      dust_sireinfect_run(private$ptr, step_end)
+    },
+
+    set_index = function(index) {
+      dust_sireinfect_set_index(private$ptr, index)
+    },
+
+    set_state = function(state, step = NULL) {
+      dust_sireinfect_set_state(private$ptr, state, step)
+    },
+
+    reset = function(data, step) {
+      private$data <- dust_sireinfect_reset(private$ptr, data, step)
+      invisible()
+    },
+
+    state = function(index = NULL) {
+      dust_sireinfect_state(private$ptr, index)
+    },
+
+    step = function() {
+      dust_sireinfect_step(private$ptr)
+    },
+
+    reorder = function(index) {
+      dust_sireinfect_reorder(private$ptr, as.integer(index))
+      invisible()
+    },
+
+    info = function() {
+      private$data
+    }
+  ))

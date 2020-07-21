@@ -6,8 +6,9 @@
 namespace dust {
 namespace distr {
 
-template <typename real_t, typename int_t, typename rng_t>
-int_t rpois(rng_t& generator, real_t lambda) {
+template <typename real_t, typename int_t>
+__device__
+int_t rpois(RNGState& rng_state, real_t lambda) {
   int_t x = 0;
   if (lambda < 10) {
     // Knuth's algorithm for generating Poisson random variates.
@@ -18,17 +19,17 @@ int_t rpois(rng_t& generator, real_t lambda) {
     // Thus to simulate a Poisson draw, we can draw X_i ~ Exp(lambda),
     // and N ~ Poisson(lambda), where N is the least number such that
     // \sum_i^N X_i > 1.
-    const real_t exp_neg_rate = std::exp(-lambda);
+    const real_t exp_neg_rate = exp(-lambda);
 
     real_t prod = 1;
 
     // Keep trying until we surpass e^(-rate). This will take
     // expected time proportional to rate.
     while (true) {
-      real_t u = generator.unif_rand();
+      real_t u = device_unif_rand(rng_state);
       prod = prod * u;
       if (prod <= exp_neg_rate &&
-          x <= std::numeric_limits<int_t>::max()) {
+          x <= INT_MAX) {
         break;
       }
       x++;
@@ -56,12 +57,12 @@ int_t rpois(rng_t& generator, real_t lambda) {
     //
     // G(u) = (2 * a / (2 - |u|) + b) * u + c
 
-    const real_t log_rate = std::log(lambda);
+    const real_t log_rate = log(lambda);
 
     // Constants used to define the dominating distribution. Names taken
     // from Hormann's paper. Constants were chosen to define the tightest
     // G(u) for the inverse Poisson CDF.
-    const real_t b = 0.931 + 2.53 * std::sqrt(lambda);
+    const real_t b = 0.931 + 2.53 * sqrt(lambda);
     const real_t a = -0.059 + 0.02483 * b;
 
     // This is the inverse acceptance rate. At a minimum (when rate = 10),
@@ -70,15 +71,15 @@ int_t rpois(rng_t& generator, real_t lambda) {
     const real_t inv_alpha = 1.1239 + 1.1328 / (b - 3.4);
 
     while (true) {
-      real_t u = generator.unif_rand();
+      real_t u = device_unif_rand(rng_state);
       u -= 0.5;
-      real_t v = generator.unif_rand();
+      real_t v = device_unif_rand(rng_state);
 
-      real_t u_shifted = 0.5 - std::fabs(u);
+      real_t u_shifted = 0.5 - fabs(u);
       int_t k = floor((2 * a / u_shifted + b) * u + lambda +
                       0.43);
 
-      if (k > std::numeric_limits<int_t>::max()) {
+      if (k > INT_MAX) {
         // retry in case of overflow.
         continue; // # nocov
       }
@@ -99,14 +100,15 @@ int_t rpois(rng_t& generator, real_t lambda) {
 
       // The expression below is equivalent to the computation of step 2)
       // in transformed rejection (v <= alpha * F'(G(u)) * G'(u)).
-      real_t s = std::log(v * inv_alpha / (a / (u_shifted * u_shifted) + b));
-      real_t t = -lambda + k * log_rate - std::lgamma(k + 1);
+      real_t s = log(v * inv_alpha / (a / (u_shifted * u_shifted) + b));
+      real_t t = -lambda + k * log_rate - lgamma(k + 1);
       if (s <= t) {
         x = k;
         break;
       }
     }
   }
+  __syncwarp();
   return x;
 }
 

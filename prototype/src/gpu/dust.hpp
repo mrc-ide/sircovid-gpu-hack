@@ -37,6 +37,7 @@ void run_particles(T** model,
                   real_t** particle_y,
                   real_t** particle_y_swap,
                   uint64_t* rng_state,
+                  dust::distr::rnorm<real_t>* rnorm_buffers,
                   size_t y_len,
                   size_t n_particles,
                   size_t step,
@@ -44,11 +45,13 @@ void run_particles(T** model,
   int index = blockIdx.x * blockDim.x + threadIdx.x;
   int stride = blockDim.x * gridDim.x;
   for (int p_idx = index; p_idx < n_particles; p_idx += stride) {
+    dust::RNGState rng = dust::loadRNG(rng_state, p_idx, n_particles);
     int curr_step = step;
     while (curr_step < step_end) {
       model[p_idx]->update(curr_step,
                             particle_y[p_idx],
-                            rng_state + p_idx * XOSHIRO_WIDTH,
+                            rng,
+                            rnorm_buffers + p_idx,
                             particle_y_swap[p_idx]);
       __syncwarp();
       curr_step++;
@@ -56,6 +59,7 @@ void run_particles(T** model,
       particle_y[p_idx] = particle_y_swap[p_idx];
       particle_y_swap[p_idx] = tmp;
     }
+    dust::putRNG(rng, rng_state, p_idx, n_particles);
   }
 }
 
@@ -208,28 +212,17 @@ public:
   Dust(const init_t data, const size_t step, const size_t n_particles,
        const size_t n_threads, const size_t seed) :
     _n_threads(n_threads),
+    _rng(n_particles, seed),
     _model_addrs(nullptr),
     _particle_y_addrs(nullptr),
     _particle_y_swap_addrs(nullptr) {
     initialise(data, step, n_particles);
-
-    // Set up rng streams for each particle
-    cdpErrchk(cudaMallocManaged((void** )&_rng_state, n_particles * XOSHIRO_WIDTH * sizeof(uint64_t)));
-    dust::Xoshiro rng(seed);
-    for (int i = 0; i < n_particles; i++) {
-      uint64_t* current_state = rng.get_rng_state();
-      for (int state_idx = 0; state_idx < XOSHIRO_WIDTH; state_idx++) {
-        _rng_state[i * XOSHIRO_WIDTH + state_idx] = current_state[state_idx];
-      }
-      rng.jump();
-    }
     cudaDeviceSynchronize();
   }
 
   // NB - if you call cudaDeviceReset() this destructor will segfault
   ~Dust() {
     cdpErrchk(cudaFree(_model_addrs));
-    cdpErrchk(cudaFree(_rng_state));
     cdpErrchk(cudaFree(_particle_y_addrs));
     cdpErrchk(cudaFree(_particle_y_swap_addrs));
   }
@@ -287,7 +280,7 @@ public:
     run_particles<<<blockCount, blockSize>>>(_model,
                                             _particle_y_addrs,
                                             _particle_y_swap_addrs,
-                                            _rng_state,
+                                            _rng.state_ptr(),
                                             _model->size(),
                                             _particles.size(),
                                             this->step(),
@@ -368,13 +361,12 @@ private:
 
   std::vector<size_t> _index;
   const size_t _n_threads;
-  //dust::pRNG<real_t, int_t> _rng;
+  dust::pRNG<real_t, int_t> _rng;
   std::vector<Particle<T>> _particles;
 
   T** _model_addrs;
   real_t** _particle_y_addrs;
   real_t** _particle_y_swap_addrs;
-  uint64_t* _rng_state;
 
   void initialise(const init_t data, const size_t step,
                   const size_t n_particles) {

@@ -6,89 +6,49 @@
 namespace dust {
 namespace distr {
 
+template <typename real_t>
 __device__
-inline void BoxMullerFloat(uint64_t x0, uint64_t x1, float* f0, float* f1) {
-  // This function implements the Box-Muller transform:
-  // http://en.wikipedia.org/wiki/Box%E2%80%93Muller_transform#Basic_form
-  // Do not send a really small number to log().
-  // We cannot mark "epsilon" as "static const" because NVCC would complain
-  const float epsilon = 1.0e-7f;
-  float u1 = __ull2float_rz(x0);
-  if (u1 < epsilon) {
-    u1 = epsilon;
-  }
-  const float v1 = 2.0f * M_PI * __ull2float_rz(x1);
-  const float u2 = sqrtf(-2.0f * logf(u1));
-  sincosf(v1, f0, f1);
-  *f0 *= u2;
-  *f1 *= u2;
-}
-
-__device__
-inline void BoxMullerDouble(uint64_t x0, uint64_t x1, double* d0,
-                     double* d1) {
+inline void BoxMuller(RNGState& rng_state, real_t* d0, real_t* d1) {
   // This function implements the Box-Muller transform:
   // http://en.wikipedia.org/wiki/Box%E2%80%93Muller_transform#Basic_form
   // Do not send a really small number to log().
   // We cannot mark "epsilon" as "static const" because NVCC would complain
   const double epsilon = 1.0e-7;
-  double u1 = __ull2double_rz(x0);
+  double u1 = device_unif_rand(rng_state);
   if (u1 < epsilon) {
     u1 = epsilon;
   }
-  const double v1 = 2 * M_PI * __ull2double_rz(x1);;
+  const double v1 = 2 * M_PI * device_unif_rand(rng_state);
   const double u2 = sqrt(-2.0 * log(u1));
   sincos(v1, d0, d1);
   *d0 *= u2;
   *d1 *= u2;
 }
 
-class NormalDistribution<float> {
+template <typename real_t>
+class rnorm {
  public:
   __device__
-  NormalDistribution() : _buffered(false) {}
+  rnorm() : _buffered(false) {}
 
   __device__
-  inline float rnorm(uint64_t* rng_state) {
+  inline real_t operator()(RNGState& rng_state, real_t mean, real_t sd) {
+    real_t z0;
     if (buffered) {
       buffered = false;
-      return result[1];
+      z0 = result[1];
     } else {
-      uint64_t u0 = gen_rand(rng_state);
-      uint64_t u1 = gen_rand(rng_state);
-      BoxMullerFloat(u0, u1, &result[0], &result[1]);
+      BoxMuller<real_t>(rng_state, &result[0], &result[1]);
       buffered = true;
-      return result[0];
+      z0 = result[0];
     }
+    __syncwarp();
+    return(z0 * sigma + mu);
   }
 
   private:
     bool _buffered;
-    float result[2];
-};
-
-class NormalDistribution<double> {
- public:
-  __device__
-  NormalDistribution() : _buffered(false) {}
-
-  __device__
-  inline double rnorm(uint64_t* rng_state) {
-    if (buffered) {
-      buffered = false;
-      return result[1];
-    } else {
-      uint64_t u0 = gen_rand(rng_state);
-      uint64_t u1 = gen_rand(rng_state);
-      BoxMullerDouble(u0, u1, &result[0], &result[1]);
-      buffered = true;
-      return result[0];
-    }
-  }
-
-  private:
-    bool _buffered;
-    double result[2];
+    real_t result[2];
 };
 
 }

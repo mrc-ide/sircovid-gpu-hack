@@ -238,6 +238,19 @@ public:
     _index = index;
   }
 
+  // It's the callee's responsibility to ensure this is the correct length
+  void set_state(const std::vector<real_t>& state, bool is_matrix) {
+    const size_t n_particles = _particles.size();
+    const size_t n_state = n_state_full();
+    auto it = state.begin();
+    for (size_t i = 0; i < n_particles; ++i) {
+      _particles[i].set_state(it);
+      if (is_matrix) {
+        it += n_state;
+      }
+    }
+  }
+
   void set_step(const size_t step) {
     const size_t n_particles = _particles.size();
     for (size_t i = 0; i < n_particles; ++i) {

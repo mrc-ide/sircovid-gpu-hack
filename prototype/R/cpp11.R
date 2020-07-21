@@ -33,7 +33,7 @@ dust_sireinfect_step <- function(ptr) {
 }
 
 dust_sireinfect_reorder <- function(ptr, r_index) {
-  .Call("_prototype_dust_sireinfect_reorder", ptr, r_index)
+  invisible(.Call("_prototype_dust_sireinfect_reorder", ptr, r_index))
 }
 
 dust_sirs_alloc <- function(r_data, step, n_particles, n_threads, seed) {

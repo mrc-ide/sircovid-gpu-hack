@@ -204,7 +204,10 @@ public:
 
   Dust(const init_t data, const size_t step, const size_t n_particles,
        const size_t n_threads, const size_t seed) :
-    _n_threads(n_threads) {
+    _n_threads(n_threads),
+    _model(NULL),
+    _particle_y_addrs(NULL),
+    _particle_y_swap_addrs(NULL) {
     initialise(data, step, n_particles);
 
     // Set up rng streams for each particle
@@ -376,9 +379,9 @@ private:
     _particles.clear();
     _particles.reserve(n_particles);
 
-    cudaFree(_particle_y_addrs);
-    cudaFree(_particle_y_swap_addrs);
-    cudaFree(_model);
+    cdpErrchk(cudaFree(_particle_y_addrs));
+    cdpErrchk(cudaFree(_particle_y_swap_addrs));
+    cdpErrchk(cudaFree(_model));
 
     std::vector<real_t*> y_ptrs;
     std::vector<real_t*> y_swap_ptrs;

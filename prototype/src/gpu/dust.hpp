@@ -6,6 +6,7 @@
 #include "gpu/xoshiro.hpp"
 #include "gpu/distr/binomial.hpp"
 
+#include <algorithm>
 #include <utility>
 #ifdef _OPENMP
 #if _OPENMP >= 201511

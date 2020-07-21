@@ -89,9 +89,8 @@ std::vector<float> sircovid_main(float alpha, float beta, float gamma, int I_ini
   data.p_IR = 1 - std::exp(- data.gamma);
   data.p_RS = 1 - std::exp(- data.alpha);
 
-  std::vector<size_t> index_y = {0};
-  // Initial state, first step, index_y, n_particles, cpu_threads, seed
-  Dust<sireinfect> dust_obj(data, 0, index_y, n_particles, 2, 1);
+  // Initial state, first step, n_particles, cpu_threads, seed
+  Dust<sireinfect> dust_obj(data, 0, n_particles, 2, seed);
 
   // Run particles
   std::vector<real_t> state(dust_obj.n_particles() * dust_obj.n_state_full());

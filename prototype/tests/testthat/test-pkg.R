@@ -15,7 +15,11 @@ test_that("reference example", {
 })
 
 test_that("gpu protptype agrees with cpu", {
-  y_cpu <- sirs$new(list(I_ini = 10), 0, 10)$run(10)
-  y_gpu <- prototype(0.1, 0.2, 0.1, 10, 10, 10, 1, 1)
-  expect_equal(y_gpu[, , 11], y_cpu)
+  mod_c <- sirs$new(list(I_ini = 10), 0, 10)
+  mod_g <- sireinfect$new(list(I_ini = 10), 0, 10)
+
+  y_cpu <- mod_c$run(10)
+  y_gpu <- mod_g$run(10)
+
+  expect_identical(y_cpu, y_gpu)
 })

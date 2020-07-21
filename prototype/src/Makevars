@@ -1,5 +1,5 @@
 # -*-makefile-*-
-OBJECTS = cpp11.o sirs.o sirs_gpu_driver.o sirs_gpu.o
+OBJECTS = cpp11.o sirs.o sirs_gpu.o
 PKG_LIBS = -lcudart
 
 NVCC = nvcc

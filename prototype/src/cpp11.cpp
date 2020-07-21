@@ -3,11 +3,61 @@
 
 #include "cpp11/declarations.hpp"
 
-// sirs_gpu_driver.cpp
-cpp11::writable::doubles prototype(double alpha, double beta, double gamma, int I0, int n_particles, int n_steps, int n_record, int seed);
-extern "C" SEXP _prototype_prototype(SEXP alpha, SEXP beta, SEXP gamma, SEXP I0, SEXP n_particles, SEXP n_steps, SEXP n_record, SEXP seed) {
+// sirs_gpu.hpp
+SEXP dust_sireinfect_alloc(cpp11::list r_data, size_t step, size_t n_particles, size_t n_threads, size_t seed);
+extern "C" SEXP _prototype_dust_sireinfect_alloc(SEXP r_data, SEXP step, SEXP n_particles, SEXP n_threads, SEXP seed) {
   BEGIN_CPP11
-    return cpp11::as_sexp(prototype(cpp11::unmove(cpp11::as_cpp<double>(alpha)), cpp11::unmove(cpp11::as_cpp<double>(beta)), cpp11::unmove(cpp11::as_cpp<double>(gamma)), cpp11::unmove(cpp11::as_cpp<int>(I0)), cpp11::unmove(cpp11::as_cpp<int>(n_particles)), cpp11::unmove(cpp11::as_cpp<int>(n_steps)), cpp11::unmove(cpp11::as_cpp<int>(n_record)), cpp11::unmove(cpp11::as_cpp<int>(seed))));
+    return cpp11::as_sexp(dust_sireinfect_alloc(cpp11::unmove(cpp11::as_cpp<cpp11::list>(r_data)), cpp11::unmove(cpp11::as_cpp<size_t>(step)), cpp11::unmove(cpp11::as_cpp<size_t>(n_particles)), cpp11::unmove(cpp11::as_cpp<size_t>(n_threads)), cpp11::unmove(cpp11::as_cpp<size_t>(seed))));
+  END_CPP11
+}
+// sirs_gpu.hpp
+SEXP dust_sireinfect_run(SEXP ptr, size_t step_end);
+extern "C" SEXP _prototype_dust_sireinfect_run(SEXP ptr, SEXP step_end) {
+  BEGIN_CPP11
+    return cpp11::as_sexp(dust_sireinfect_run(cpp11::unmove(cpp11::as_cpp<SEXP>(ptr)), cpp11::unmove(cpp11::as_cpp<size_t>(step_end))));
+  END_CPP11
+}
+// sirs_gpu.hpp
+SEXP dust_sireinfect_set_index(SEXP ptr, cpp11::sexp r_index);
+extern "C" SEXP _prototype_dust_sireinfect_set_index(SEXP ptr, SEXP r_index) {
+  BEGIN_CPP11
+    return cpp11::as_sexp(dust_sireinfect_set_index(cpp11::unmove(cpp11::as_cpp<SEXP>(ptr)), cpp11::unmove(cpp11::as_cpp<cpp11::sexp>(r_index))));
+  END_CPP11
+}
+// sirs_gpu.hpp
+SEXP dust_sireinfect_set_state(SEXP ptr, SEXP r_state, SEXP r_step);
+extern "C" SEXP _prototype_dust_sireinfect_set_state(SEXP ptr, SEXP r_state, SEXP r_step) {
+  BEGIN_CPP11
+    return cpp11::as_sexp(dust_sireinfect_set_state(cpp11::unmove(cpp11::as_cpp<SEXP>(ptr)), cpp11::unmove(cpp11::as_cpp<SEXP>(r_state)), cpp11::unmove(cpp11::as_cpp<SEXP>(r_step))));
+  END_CPP11
+}
+// sirs_gpu.hpp
+SEXP dust_sireinfect_reset(SEXP ptr, cpp11::list r_data, size_t step);
+extern "C" SEXP _prototype_dust_sireinfect_reset(SEXP ptr, SEXP r_data, SEXP step) {
+  BEGIN_CPP11
+    return cpp11::as_sexp(dust_sireinfect_reset(cpp11::unmove(cpp11::as_cpp<SEXP>(ptr)), cpp11::unmove(cpp11::as_cpp<cpp11::list>(r_data)), cpp11::unmove(cpp11::as_cpp<size_t>(step))));
+  END_CPP11
+}
+// sirs_gpu.hpp
+SEXP dust_sireinfect_state(SEXP ptr, SEXP r_index);
+extern "C" SEXP _prototype_dust_sireinfect_state(SEXP ptr, SEXP r_index) {
+  BEGIN_CPP11
+    return cpp11::as_sexp(dust_sireinfect_state(cpp11::unmove(cpp11::as_cpp<SEXP>(ptr)), cpp11::unmove(cpp11::as_cpp<SEXP>(r_index))));
+  END_CPP11
+}
+// sirs_gpu.hpp
+size_t dust_sireinfect_step(SEXP ptr);
+extern "C" SEXP _prototype_dust_sireinfect_step(SEXP ptr) {
+  BEGIN_CPP11
+    return cpp11::as_sexp(dust_sireinfect_step(cpp11::unmove(cpp11::as_cpp<SEXP>(ptr))));
+  END_CPP11
+}
+// sirs_gpu.hpp
+void dust_sireinfect_reorder(SEXP ptr, cpp11::sexp r_index);
+extern "C" SEXP _prototype_dust_sireinfect_reorder(SEXP ptr, SEXP r_index) {
+  BEGIN_CPP11
+    dust_sireinfect_reorder(cpp11::unmove(cpp11::as_cpp<SEXP>(ptr)), cpp11::unmove(cpp11::as_cpp<cpp11::sexp>(r_index)));
+    return R_NilValue;
   END_CPP11
 }
 // sirs.cpp
@@ -70,6 +120,14 @@ extern "C" SEXP _prototype_dust_sirs_reorder(SEXP ptr, SEXP r_index) {
 
 extern "C" {
 /* .Call calls */
+extern SEXP _prototype_dust_sireinfect_alloc(SEXP, SEXP, SEXP, SEXP, SEXP);
+extern SEXP _prototype_dust_sireinfect_reorder(SEXP, SEXP);
+extern SEXP _prototype_dust_sireinfect_reset(SEXP, SEXP, SEXP);
+extern SEXP _prototype_dust_sireinfect_run(SEXP, SEXP);
+extern SEXP _prototype_dust_sireinfect_set_index(SEXP, SEXP);
+extern SEXP _prototype_dust_sireinfect_set_state(SEXP, SEXP, SEXP);
+extern SEXP _prototype_dust_sireinfect_state(SEXP, SEXP);
+extern SEXP _prototype_dust_sireinfect_step(SEXP);
 extern SEXP _prototype_dust_sirs_alloc(SEXP, SEXP, SEXP, SEXP, SEXP);
 extern SEXP _prototype_dust_sirs_reorder(SEXP, SEXP);
 extern SEXP _prototype_dust_sirs_reset(SEXP, SEXP, SEXP);
@@ -78,18 +136,24 @@ extern SEXP _prototype_dust_sirs_set_index(SEXP, SEXP);
 extern SEXP _prototype_dust_sirs_set_state(SEXP, SEXP, SEXP);
 extern SEXP _prototype_dust_sirs_state(SEXP, SEXP);
 extern SEXP _prototype_dust_sirs_step(SEXP);
-extern SEXP _prototype_prototype(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_prototype_dust_sirs_alloc",     (DL_FUNC) &_prototype_dust_sirs_alloc,     5},
-    {"_prototype_dust_sirs_reorder",   (DL_FUNC) &_prototype_dust_sirs_reorder,   2},
-    {"_prototype_dust_sirs_reset",     (DL_FUNC) &_prototype_dust_sirs_reset,     3},
-    {"_prototype_dust_sirs_run",       (DL_FUNC) &_prototype_dust_sirs_run,       2},
-    {"_prototype_dust_sirs_set_index", (DL_FUNC) &_prototype_dust_sirs_set_index, 2},
-    {"_prototype_dust_sirs_set_state", (DL_FUNC) &_prototype_dust_sirs_set_state, 3},
-    {"_prototype_dust_sirs_state",     (DL_FUNC) &_prototype_dust_sirs_state,     2},
-    {"_prototype_dust_sirs_step",      (DL_FUNC) &_prototype_dust_sirs_step,      1},
-    {"_prototype_prototype",           (DL_FUNC) &_prototype_prototype,           8},
+    {"_prototype_dust_sireinfect_alloc",     (DL_FUNC) &_prototype_dust_sireinfect_alloc,     5},
+    {"_prototype_dust_sireinfect_reorder",   (DL_FUNC) &_prototype_dust_sireinfect_reorder,   2},
+    {"_prototype_dust_sireinfect_reset",     (DL_FUNC) &_prototype_dust_sireinfect_reset,     3},
+    {"_prototype_dust_sireinfect_run",       (DL_FUNC) &_prototype_dust_sireinfect_run,       2},
+    {"_prototype_dust_sireinfect_set_index", (DL_FUNC) &_prototype_dust_sireinfect_set_index, 2},
+    {"_prototype_dust_sireinfect_set_state", (DL_FUNC) &_prototype_dust_sireinfect_set_state, 3},
+    {"_prototype_dust_sireinfect_state",     (DL_FUNC) &_prototype_dust_sireinfect_state,     2},
+    {"_prototype_dust_sireinfect_step",      (DL_FUNC) &_prototype_dust_sireinfect_step,      1},
+    {"_prototype_dust_sirs_alloc",           (DL_FUNC) &_prototype_dust_sirs_alloc,           5},
+    {"_prototype_dust_sirs_reorder",         (DL_FUNC) &_prototype_dust_sirs_reorder,         2},
+    {"_prototype_dust_sirs_reset",           (DL_FUNC) &_prototype_dust_sirs_reset,           3},
+    {"_prototype_dust_sirs_run",             (DL_FUNC) &_prototype_dust_sirs_run,             2},
+    {"_prototype_dust_sirs_set_index",       (DL_FUNC) &_prototype_dust_sirs_set_index,       2},
+    {"_prototype_dust_sirs_set_state",       (DL_FUNC) &_prototype_dust_sirs_set_state,       3},
+    {"_prototype_dust_sirs_state",           (DL_FUNC) &_prototype_dust_sirs_state,           2},
+    {"_prototype_dust_sirs_step",            (DL_FUNC) &_prototype_dust_sirs_step,            1},
     {NULL, NULL, 0}
 };
 }

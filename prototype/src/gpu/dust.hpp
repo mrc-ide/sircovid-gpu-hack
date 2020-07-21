@@ -153,7 +153,7 @@ public:
     */
   }
 
-  void set_state(const Particle<T> other) {
+  void set_state(const Particle<T>& other) {
     _y_swap = other._y;
     y_swap_to_device();
   }

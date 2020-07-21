@@ -17,6 +17,7 @@
 
 #include <thrust/device_vector.h>
 #include <thrust/swap.h>
+#include <cub/device/device_select.cuh>
 
 // Error checking of dynamic memory allocation on device
 // https://stackoverflow.com/a/14038590
@@ -32,7 +33,7 @@ __host__ __device__ void cdpAssert(cudaError_t code, const char *file, int line,
 
 template <typename T>
 __global__
-void run_particles(T* model,
+void run_particles(T** model,
                   real_t** particle_y,
                   real_t** particle_y_swap,
                   uint64_t* rng_state,
@@ -45,10 +46,10 @@ void run_particles(T* model,
   for (int p_idx = index; p_idx < n_particles; p_idx += stride) {
     int curr_step = step;
     while (curr_step < step_end) {
-      model->update(curr_step,
-                    particle_y[p_idx],
-                    rng_state + p_idx * XOSHIRO_WIDTH,
-                    particle_y_swap[p_idx]);
+      model[p_idx]->update(curr_step,
+                            particle_y[p_idx],
+                            rng_state + p_idx * XOSHIRO_WIDTH,
+                            particle_y_swap[p_idx]);
       curr_step++;
       real_t* tmp = particle_y[p_idx];
       particle_y[p_idx] = particle_y_swap[p_idx];
@@ -76,21 +77,26 @@ public:
       cdpErrchk(cudaMalloc((void** )&_y_swap_device, _y_swap.size() * sizeof(real_t)));
       cdpErrchk(cudaMemcpy(_y_swap_device, _y_swap.data(), _y_swap.size() * sizeof(real_t),
               cudaMemcpyDefault));
+
+      // Copy the model
+      cdpErrchk(cudaMallocManaged((void** )&_model, sizeof(T)));
+      *_model = T(data);
       cudaDeviceSynchronize();
   }
 
   ~Particle() {
     cdpErrchk(cudaFree(_y_device));
     cdpErrchk(cudaFree(_y_swap_device));
+    cdpErrchk(cudaFree(_model));
   }
 
   Particle(Particle&& other) noexcept :
-    _model(std::move(other._model)),
     _step(std::move(other._step)),
     _y(std::move(other._y)),
     _y_swap(std::move(other._y_swap)),
     _y_device(std::exchange(other._y_device, nullptr)),
-    _y_swap_device(std::exchange(other._y_swap_device, nullptr))
+    _y_swap_device(std::exchange(other._y_swap_device, nullptr)),
+    _model(std::exchange(other._model, nullptr))
   {}
 
   Particle& operator=(Particle&& other) {
@@ -104,12 +110,14 @@ public:
       std::swap(_y_swap, other._y_swap);
       _y_device = std::exchange(other._y_device, nullptr);
       _y_swap_device = std::exchange(other._y_swap_device, nullptr);
+      _model = std::exchange(other._model, nullptr);
     }
     return *this;
   }
 
   real_t * y_addr() { return _y_device; };
   real_t * y_swap_addr() { return _y_swap_device; };
+  T * model_addr() { return _model; }
 
   void state(const std::vector<size_t>& index_y,
              typename std::vector<real_t>::iterator end_state) {
@@ -141,16 +149,10 @@ public:
   }
 
   void swap() {
+    // Swaps on the device
     thrust::device_ptr<real_t> y_ptr(_y_device);
     thrust::device_ptr<real_t> y_swap_ptr(_y_swap_device);
     thrust::swap(y_ptr, y_swap_ptr);
-    // Necessary to swap on host too?:
-    /*
-    thrust::copy(_y_device.begin(), _y_device.end(), _y.begin());
-    thrust::copy(_y_swap_device.begin(), _y_swap_device.end(), _y_swap.begin());
-    thrust::swap(_y, _y_swap);
-    cudaDeviceSynchronize();
-    */
   }
 
   void set_state(const Particle<T>& other) {
@@ -169,7 +171,7 @@ private:
   // Delete copy
   Particle ( const Particle & ) = delete;
 
-  T _model;
+  T* _model;
   size_t _step;
 
   std::vector<real_t> _y;
@@ -205,7 +207,7 @@ public:
   Dust(const init_t data, const size_t step, const size_t n_particles,
        const size_t n_threads, const size_t seed) :
     _n_threads(n_threads),
-    _model(nullptr),
+    _model_addrs(nullptr),
     _particle_y_addrs(nullptr),
     _particle_y_swap_addrs(nullptr) {
     initialise(data, step, n_particles);
@@ -223,8 +225,9 @@ public:
     cudaDeviceSynchronize();
   }
 
+  // NB - if you call cudaDeviceReset() this destructor will segfault
   ~Dust() {
-    cdpErrchk(cudaFree(_model));
+    cdpErrchk(cudaFree(_model_addrs));
     cdpErrchk(cudaFree(_rng_state));
     cdpErrchk(cudaFree(_particle_y_addrs));
     cdpErrchk(cudaFree(_particle_y_swap_addrs));
@@ -280,8 +283,6 @@ public:
   void run(const size_t step_end) {
     const size_t blockSize = 32; // Check later
     const size_t blockCount = (_particles.size() + blockSize - 1) / blockSize;
-    // const size_t blockSize = 1;
-    // const size_t blockCount = 1;
     run_particles<<<blockCount, blockSize>>>(_model,
                                             _particle_y_addrs,
                                             _particle_y_swap_addrs,
@@ -369,7 +370,7 @@ private:
   //dust::pRNG<real_t, int_t> _rng;
   std::vector<Particle<T>> _particles;
 
-  T* _model;
+  T** _model_addrs;
   real_t** _particle_y_addrs;
   real_t** _particle_y_swap_addrs;
   uint64_t* _rng_state;
@@ -385,10 +386,12 @@ private:
 
     std::vector<real_t*> y_ptrs;
     std::vector<real_t*> y_swap_ptrs;
+    std::vector<T*> model_ptrs;
     for (size_t i = 0; i < n_particles; ++i) {
       _particles.push_back(Particle<T>(data, step));
       y_ptrs.push_back(_particles[i].y_addr());
       y_swap_ptrs.push_back(_particles[i].y_swap_addr());
+      model_ptrs.push_back(_particles[i].model_addr());
     }
     cdpErrchk(cudaMalloc((void** )&_particle_y_addrs, y_ptrs.size() * sizeof(real_t*)));
     cdpErrchk(cudaMemcpy(_particle_y_addrs, y_ptrs.data(), y_ptrs.size() * sizeof(real_t*),
@@ -398,8 +401,9 @@ private:
 	              cudaMemcpyHostToDevice));
 
     // Copy the model
-    cdpErrchk(cudaMallocManaged((void** )&_model, sizeof(T)));
-    *_model = T(data);
+    cdpErrchk(cudaMalloc((void** )&_model_addrs, model_ptrs.size() * sizeof(T*)));
+    cdpErrchk(cudaMemcpy(_model_addrs, model_ptrs.data(), model_ptrs.size() * sizeof(T*),
+	              cudaMemcpyHostToDevice));
 
     const size_t n = n_state_full();
     _index.clear();

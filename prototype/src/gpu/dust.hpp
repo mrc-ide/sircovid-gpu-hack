@@ -342,7 +342,7 @@ private:
   Dust ( const Dust & ) = delete;
   Dust ( Dust && ) = delete;
 
-  const std::vector<size_t> _index;
+  std::vector<size_t> _index;
   const size_t _n_threads;
   //dust::pRNG<real_t, int_t> _rng;
   std::vector<Particle<T>> _particles;

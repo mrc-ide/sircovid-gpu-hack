@@ -20,6 +20,7 @@ double binomial_inversion(double n, double prob, uint64_t* rng_state) {
     }
     ++num_geom;
   }
+  __syncwarp();
   return num_geom;
 }
 
@@ -30,11 +31,15 @@ inline double stirling_approx_tail(double k) {
                                  0.0166446911898211,  0.0138761288230707,
                                  0.0118967099458917,  0.0104112652619720,
                                  0.00925546218271273, 0.00833056343336287};
+  double tail;
   if (k <= 9) {
-    return kTailValues[static_cast<int>(k)];
+    tail = kTailValues[static_cast<int>(k)];
+  } else {
+      double kp1sq = (k + 1) * (k + 1);
+      tail = (1.0 / 12 - (1.0 / 360 - 1.0 / 1260 / kp1sq) / kp1sq) / (k + 1);
   }
-  double kp1sq = (k + 1) * (k + 1);
-  return (1.0 / 12 - (1.0 / 360 - 1.0 / 1260 / kp1sq) / kp1sq) / (k + 1);
+  __syncwarp();
+  return(tail);
 }
 
 // https://www.tandfonline.com/doi/abs/10.1080/00949659308811496
@@ -53,6 +58,7 @@ inline double btrs(double n, double p, uint64_t* rng_state) {
   const double alpha = (2.83 + 5.1 / b) * stddev;
   const double m = floor((n + 1) * p);
 
+  double draw;
   while (true) {
     double u = device_unif_rand(rng_state);
     double v = device_unif_rand(rng_state);
@@ -66,7 +72,8 @@ inline double btrs(double n, double p, uint64_t* rng_state) {
     // the acceptance rate converges to ~79% (and in the lower
     // regime it is ~24%).
     if (us >= 0.07 && v <= v_r) {
-      return k;
+      draw = k;
+      break;
     }
     // Reject non-sensical answers.
     if (k < 0 || k > n) {
@@ -84,9 +91,12 @@ inline double btrs(double n, double p, uint64_t* rng_state) {
        stirling_approx_tail(m) + stirling_approx_tail(n - m) -
        stirling_approx_tail(k) - stirling_approx_tail(n - k));
     if (v <= upperbound) {
-      return k;
+      draw = k;
+      break;
     }
   }
+  __syncwarp();
+  return draw;
 }
 
 template <typename real_t, typename int_t>
@@ -120,6 +130,7 @@ int_t rbinom(uint64_t* rng_state, int_t n, real_t p) {
   } else {
     draw = static_cast<int_t>(binomial_inversion(n, q, rng_state));
   }
+  __syncwarp();
 
   if (p > 0.5) {
     draw = n - draw;

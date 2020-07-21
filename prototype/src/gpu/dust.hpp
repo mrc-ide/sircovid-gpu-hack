@@ -50,6 +50,7 @@ void run_particles(T** model,
                             particle_y[p_idx],
                             rng_state + p_idx * XOSHIRO_WIDTH,
                             particle_y_swap[p_idx]);
+      __syncwarp();
       curr_step++;
       real_t* tmp = particle_y[p_idx];
       particle_y[p_idx] = particle_y_swap[p_idx];

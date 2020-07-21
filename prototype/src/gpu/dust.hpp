@@ -204,7 +204,7 @@ public:
   Dust(const init_t data, const size_t step, const size_t n_particles,
        const size_t n_threads, const size_t seed) :
     _n_threads(n_threads) {
-    initialise(data, step, particles);
+    initialise(data, step, n_particles);
 
     // Set up rng streams for each particle
     cdpErrchk(cudaMallocManaged((void** )&_rng_state, n_particles * XOSHIRO_WIDTH * sizeof(uint64_t)));
@@ -278,7 +278,7 @@ public:
   void state(std::vector<real_t>& end_state) {
     #pragma omp parallel for schedule(static) num_threads(_n_threads)
     for (size_t i = 0; i < _particles.size(); ++i) {
-      _particles[i].state(_index_y, end_state.begin() + i * _index_y.size());
+      _particles[i].state(_index, end_state.begin() + i * _index.size());
     }
   }
 
@@ -326,7 +326,7 @@ public:
   }
 
   size_t n_state() const {
-    return _index_y.size();
+    return _index.size();
   }
 
   size_t n_state_full() const {
@@ -342,7 +342,7 @@ private:
   Dust ( const Dust & ) = delete;
   Dust ( Dust && ) = delete;
 
-  const std::vector<size_t> _index_y;
+  const std::vector<size_t> _index;
   const size_t _n_threads;
   //dust::pRNG<real_t, int_t> _rng;
   std::vector<Particle<T>> _particles;

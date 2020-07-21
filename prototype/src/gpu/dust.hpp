@@ -358,11 +358,9 @@ private:
     _particles.clear();
     _particles.reserve(n_particles);
 
-    // TODO: this is not safe to run multiple times (as it is it can
-    // be run only from the constructor). If we run again we need to
-    // clear these:
-    // cudaFree(_y_device);
-    // cudaFree(_y_swap_device);
+    cudaFree(_particle_y_addrs);
+    cudaFree(_particle_y_swap_addrs);
+    cudaFree(_model);
 
     std::vector<real_t*> y_ptrs;
     std::vector<real_t*> y_swap_ptrs;

@@ -87,7 +87,7 @@ private:
   pRNG ( pRNG && ) = delete;
 
   void put_state() {
-    std::vector<uint64_t> interleaved_state(n * XOSHIRO_WIDTH);
+    std::vector<uint64_t> interleaved_state(size() * XOSHIRO_WIDTH);
     for (int i = 0; i < size(); i++) {
       uint64_t* current_state = _rngs[i].get_rng_state();
       for (int state_idx = 0; state_idx < XOSHIRO_WIDTH; state_idx++) {
@@ -112,7 +112,7 @@ private:
       for (int state_idx = 0; state_idx < XOSHIRO_WIDTH; state_idx++) {
         state[i] = interleaved_state[i + size() * state_idx];
       }
-      _rngs[i].set_state(state)
+      _rngs[i].set_state(state);
     }
   }
 

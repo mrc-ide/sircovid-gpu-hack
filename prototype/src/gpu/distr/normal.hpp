@@ -34,16 +34,16 @@ class rnorm {
   __device__
   inline real_t operator()(RNGState& rng_state, real_t mean, real_t sd) {
     real_t z0;
-    if (buffered) {
-      buffered = false;
+    if (_buffered) {
+      _buffered = false;
       z0 = result[1];
     } else {
       BoxMuller<real_t>(rng_state, &result[0], &result[1]);
-      buffered = true;
+      _buffered = true;
       z0 = result[0];
     }
     __syncwarp();
-    return(z0 * sigma + mu);
+    return(z0 * sd + mean);
   }
 
   private:

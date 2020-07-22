@@ -1,6 +1,9 @@
 #ifndef DUST_CUDA_HPP
 #define DUST_CUDA_HPP
 
+#include <assert.h>
+#include <stdio.h>
+
 // Error checking of dynamic memory allocation on device
 // https://stackoverflow.com/a/14038590
 #define cdpErrchk(ans) { cdpAssert((ans), __FILE__, __LINE__); }

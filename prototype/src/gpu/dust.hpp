@@ -19,7 +19,7 @@
 
 template <typename T>
 __global__
-void run_particles(T** model,
+void run_particles(T** models,
                   real_t** particle_y,
                   real_t** particle_y_swap,
                   uint64_t* rng_state,
@@ -34,9 +34,9 @@ void run_particles(T** model,
     dust::RNGState rng = dust::loadRNG(rng_state, p_idx, n_particles);
     int curr_step = step;
     while (curr_step < step_end) {
-      model[p_idx]->update(curr_step,
+      models[p_idx]->update(curr_step,
                             particle_y[p_idx],
-                            particle_y_swap[p_idx]
+                            particle_y_swap[p_idx],
                             rng,
                             rnorm_buffers + p_idx);
       __syncwarp();
@@ -59,21 +59,21 @@ public:
   // typedef typename dust::RNG<real_t, int_t> rng_t;
 
   Particle(init_t data, size_t step) :
-    _model(data),
-    _step(step),
-    _y(_model.initial(_step)),
-    _y_swap(_model.size()) {
+    _step(step) {
+      // Copy the model
+      cdpErrchk(cudaMallocManaged((void** )&_model, sizeof(T)));
+      *_model = T(data);
+      cudaDeviceSynchronize();
+
+      _y = std::vector<real_t>(_model->initial(_step));
+      _y_swap = std::vector<real_t>(_model->size());
+
       cdpErrchk(cudaMalloc((void** )&_y_device, _y.size() * sizeof(real_t)));
       cdpErrchk(cudaMemcpy(_y_device, _y.data(), _y.size() * sizeof(real_t),
               cudaMemcpyDefault));
       cdpErrchk(cudaMalloc((void** )&_y_swap_device, _y_swap.size() * sizeof(real_t)));
       cdpErrchk(cudaMemcpy(_y_swap_device, _y_swap.data(), _y_swap.size() * sizeof(real_t),
               cudaMemcpyDefault));
-
-      // Copy the model
-      cdpErrchk(cudaMallocManaged((void** )&_model, sizeof(T)));
-      *_model = T(data);
-      cudaDeviceSynchronize();
   }
 
   ~Particle() {
@@ -274,11 +274,12 @@ public:
   void run(const size_t step_end) {
     const size_t blockSize = 32; // Check later
     const size_t blockCount = (_particles.size() + blockSize - 1) / blockSize;
-    run_particles<<<blockCount, blockSize>>>(_model,
+    run_particles<<<blockCount, blockSize>>>(_model_addrs,
                                             _particle_y_addrs,
                                             _particle_y_swap_addrs,
                                             _rng.state_ptr(),
-                                            _model->size(),
+                                            _rng.rnorm_ptr(),
+                                            _particles.front().size(), //FIXME: are sizes ever different?
                                             _particles.size(),
                                             this->step(),
                                             step_end);

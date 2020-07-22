@@ -100,9 +100,11 @@ private:
 };
 
 __device__
+constexpr double max_double_val() {return __ull2double_rn(UINT64_MAX); }
+
+__device__
 inline double device_unif_rand(RNGState& state) {
-  static const double max_val = __ull2double_rn(UINT64_MAX);
-  double rand = (__ddiv_rn(__ull2double_rn(gen_rand(state)), max_val));
+  double rand = (__ddiv_rn(__ull2double_rn(gen_rand(state)), max_double_val()));
   return rand;
 }
 

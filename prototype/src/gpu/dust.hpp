@@ -1,10 +1,8 @@
 #ifndef DUST_DUST_HPP
 #define DUST_DUST_HPP
 
-// Not sure if we want the RNG object in CUDA
-// #include "rng.hpp"
-#include "gpu/xoshiro.hpp"
-#include "gpu/distr/binomial.hpp"
+#include "cuda.hpp"
+#include "rng.hpp"
 
 #include <algorithm>
 #include <utility>
@@ -18,18 +16,6 @@
 #include <thrust/device_vector.h>
 #include <thrust/swap.h>
 #include <cub/device/device_select.cuh>
-
-// Error checking of dynamic memory allocation on device
-// https://stackoverflow.com/a/14038590
-#define cdpErrchk(ans) { cdpAssert((ans), __FILE__, __LINE__); }
-__host__ __device__ void cdpAssert(cudaError_t code, const char *file, int line, bool abort=true)
-{
-   if (code != cudaSuccess)
-   {
-      printf("GPU kernel assert: %s %s %d\n", cudaGetErrorString(code), file, line);
-      if (abort) assert(0);
-   }
-}
 
 template <typename T>
 __global__
@@ -100,10 +86,17 @@ public:
     _step(std::move(other._step)),
     _y(std::move(other._y)),
     _y_swap(std::move(other._y_swap)),
-    _y_device(std::exchange(other._y_device, nullptr)),
-    _y_swap_device(std::exchange(other._y_swap_device, nullptr)),
-    _model(std::exchange(other._model, nullptr))
-  {}
+    _y_device(nullptr),
+    _y_swap_device(nullptr),
+    _model(nullptr)
+  {
+    _y_device = other._y_device;
+    other._y_device = nullptr;
+    _y_swap_device = other._y_swap_device;
+    other._y_swap_device = nullptr;
+    _model = other._model;
+    other._model = nullptr;
+  }
 
   Particle& operator=(Particle&& other) {
     if (this != &other) {
@@ -114,9 +107,12 @@ public:
       std::swap(_step, other._step);
       std::swap(_y, other._y);
       std::swap(_y_swap, other._y_swap);
-      _y_device = std::exchange(other._y_device, nullptr);
-      _y_swap_device = std::exchange(other._y_swap_device, nullptr);
-      _model = std::exchange(other._model, nullptr);
+      _y_device = other._y_device;
+      other._y_device = nullptr;
+      _y_swap_device = other._y_swap_device;
+      other._y_swap_device = nullptr;
+      _model = other._model;
+      other._model = nullptr;
     }
     return *this;
   }
@@ -376,7 +372,7 @@ private:
 
     cdpErrchk(cudaFree(_particle_y_addrs));
     cdpErrchk(cudaFree(_particle_y_swap_addrs));
-    cdpErrchk(cudaFree(_model));
+    cdpErrchk(cudaFree(_model_addrs));
 
     std::vector<real_t*> y_ptrs;
     std::vector<real_t*> y_swap_ptrs;

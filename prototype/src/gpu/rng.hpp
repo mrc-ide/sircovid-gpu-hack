@@ -1,6 +1,7 @@
 #ifndef DUST_RNG_HPP
 #define DUST_RNG_HPP
 
+#include "cuda.hpp"
 #include "xoshiro.hpp"
 #include "distr/binomial.hpp"
 #include "distr/normal.hpp"
@@ -47,13 +48,13 @@ public:
                          n * sizeof(dust::distr::rnorm<real_t>),
                          cudaMemcpyDefault));
 
-    cdpErrchk(cudaMalloc((void** )&_rng_state,
+    cdpErrchk(cudaMalloc((void** )&_d_rng_state,
                           n * XOSHIRO_WIDTH * sizeof(uint64_t)));
     put_state();
   }
 
   ~pRNG() {
-    cdpErrchk(cudaFree(_rng_state));
+    cdpErrchk(cudaFree(_d_rng_state));
     cdpErrchk(cudaFree(_rnorm_buffers));
   }
 
@@ -87,10 +88,10 @@ private:
 
   void put_state() {
     std::vector<uint64_t> interleaved_state(n * XOSHIRO_WIDTH);
-    for (int i = 0; i < n; i++) {
+    for (int i = 0; i < size(); i++) {
       uint64_t* current_state = _rngs[i].get_rng_state();
       for (int state_idx = 0; state_idx < XOSHIRO_WIDTH; state_idx++) {
-        interleaved_state[i + n * state_idx] = current_state[state_idx];
+        interleaved_state[i + size() * state_idx] = current_state[state_idx];
       }
     }
     cdpErrchk(cudaMemcpy(_d_rng_state, interleaved_state.data(),
@@ -100,27 +101,29 @@ private:
   }
 
   void get_state() {
-    std::vector<uint64_t> interleaved_state(n * XOSHIRO_WIDTH);
+    std::vector<uint64_t> interleaved_state(size() * XOSHIRO_WIDTH);
     cdpErrchk(cudaMemcpy(interleaved_state.data(), _d_rng_state,
                          interleaved_state.size() * sizeof(uint64_t),
                          cudaMemcpyDefault));
     cudaDeviceSynchronize();
 
-    for (int i = 0; i < n; i++) {
+    for (int i = 0; i < size(); i++) {
       std::vector<uint64_t> state(XOSHIRO_WIDTH);
       for (int state_idx = 0; state_idx < XOSHIRO_WIDTH; state_idx++) {
-        state[i] = interleaved_state[i + n * state_idx];
+        state[i] = interleaved_state[i + size() * state_idx];
       }
       _rngs[i].set_state(state)
     }
   }
 
   // Host memory
-  std::vector<dust::Xoshiro<real_t>> _rngs;
+  std::vector<dust::Xoshiro> _rngs;
 
   // Device memory
   uint64_t* _d_rng_state;
   dust::distr::rnorm<real_t>* _rnorm_buffers;
 };
+
+}
 
 #endif

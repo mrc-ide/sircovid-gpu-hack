@@ -13,22 +13,22 @@ struct RNGptr {
   uint64_t* state_ptr;
   unsigned int state_stride;
   unsigned int particle_stride;
-}
+};
 
 // Read state from global memory
 __device__
-RNGState loadRNG(RNGptr * rng_state, int p_idx) {
+RNGState loadRNG(RNGptr& rng_state, int p_idx) {
   RNGState state;
   for (int i = 0; i < XOSHIRO_WIDTH; i++) {
     state.s[i] = rng_state.state_ptr[p_idx * rng_state.particle_stride +
-                                     i * rng_state.state_stride];
+                                      i * rng_state.state_stride];
   }
   return state;
 }
 
 // Write state into global memory
 __device__
-void putRNG(RNGState& rng, RNGptr * rng_state, int p_idx) {
+void putRNG(RNGState& rng, RNGptr& rng_state, int p_idx) {
   for (int i = 0; i < XOSHIRO_WIDTH; i++) {
     rng_state.state_ptr[p_idx * rng_state.particle_stride +
                         i * rng_state.state_stride] = rng.s[i];
@@ -100,11 +100,11 @@ private:
       uint64_t* current_state = _rngs[i].get_rng_state();
       for (int state_idx = 0; state_idx < XOSHIRO_WIDTH; state_idx++) {
         interleaved_state[i * _d_rng_state.particle_stride +
-                          state_idx * _drng_state.state_stride] =
+                          state_idx * _d_rng_state.state_stride] =
           current_state[state_idx];
       }
     }
-    CUDA_CALL(cudaMemcpy(_d_rng_state, interleaved_state.data(),
+    CUDA_CALL(cudaMemcpy(_d_rng_state.state_ptr, interleaved_state.data(),
                          interleaved_state.size() * sizeof(uint64_t),
                          cudaMemcpyDefault));
     cudaDeviceSynchronize();
@@ -112,7 +112,7 @@ private:
 
   void get_state_device() {
     std::vector<uint64_t> interleaved_state(size() * XOSHIRO_WIDTH);
-    CUDA_CALL(cudaMemcpy(interleaved_state.data(), _d_rng_state,
+    CUDA_CALL(cudaMemcpy(interleaved_state.data(), _d_rng_state.state_ptr,
                          interleaved_state.size() * sizeof(uint64_t),
                          cudaMemcpyDefault));
     cudaDeviceSynchronize();
@@ -121,7 +121,7 @@ private:
       std::vector<uint64_t> state(XOSHIRO_WIDTH);
       for (int state_idx = 0; state_idx < XOSHIRO_WIDTH; state_idx++) {
         state[i] = interleaved_state[i * _d_rng_state.particle_stride +
-                                     state_idx * _drng_state.state_stride];
+                                     state_idx * _d_rng_state.state_stride];
       }
       _rngs[i].set_state(state);
     }

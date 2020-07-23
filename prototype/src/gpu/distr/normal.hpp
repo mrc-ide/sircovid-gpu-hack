@@ -36,10 +36,10 @@ inline real_t rnorm(RNGState& rng_state, real_t mean, real_t sd) {
 // Device class which saves both values from the BoxMuller transform
 // Not yet used
 template <typename real_t>
-class rnorm {
+class rnorm_buffer {
  public:
   __device__
-  rnorm() : _buffered(false) {}
+  rnorm_buffer() : _buffered(false) {}
 
   __device__
   inline real_t operator()(RNGState& rng_state, real_t mean, real_t sd) {

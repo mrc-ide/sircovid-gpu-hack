@@ -20,7 +20,7 @@
 namespace dust {
 
 struct RNGState {
-  uint64_t[XOSHIRO_WIDTH] s;
+  uint64_t s[XOSHIRO_WIDTH];
 };
 
 __host__ __device__
@@ -34,7 +34,7 @@ inline uint64_t gen_rand(uint64_t * state) {
   const uint64_t result = rotl(state[1] * 5, 7) * 9;
   //printf("r:%lu s:%lu %lu %lu %lu\n", result, state[0], state[1], state[2], state[3]);
 
-  const uint64_t t = state.s1 << 17;
+  const uint64_t t = state[1] << 17;
 
   state[2] ^= state[0];
   state[3] ^= state[1];
@@ -50,7 +50,7 @@ inline uint64_t gen_rand(uint64_t * state) {
 
 __device__
 inline uint64_t gen_rand(RNGState& state) {
-  return gen_rand(*(state.s));
+  return gen_rand(state.s);
 }
 
 class Xoshiro {

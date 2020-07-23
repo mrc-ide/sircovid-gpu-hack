@@ -21,7 +21,7 @@ __global__
 void run_particles(T** models,
                   real_t** particle_y,
                   real_t** particle_y_swap,
-                  RNGptr rng_state,
+                  dust::RNGptr rng_state,
                   size_t y_len,
                   size_t n_particles,
                   size_t step,

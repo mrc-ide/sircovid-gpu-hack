@@ -14,7 +14,7 @@
 
 #include <thrust/device_vector.h>
 #include <thrust/swap.h>
-#include <cub/device/device_select.cuh>
+// #include <cub/device/device_select.cuh>
 
 template <typename T>
 __global__

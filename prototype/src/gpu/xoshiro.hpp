@@ -20,7 +20,7 @@
 namespace dust {
 
 struct RNGState {
-  uint64_t s0, s1, s2, s3;
+  uint64_t[XOSHIRO_WIDTH] s;
 };
 
 __host__ __device__
@@ -28,29 +28,29 @@ static inline uint64_t rotl(const uint64_t x, int k) {
 	return (x << k) | (x >> (64 - k));
 }
 
+// Call with non-interleaved state only
 __host__ __device__
-inline uint64_t gen_rand(RNGState& state) {
-  const uint64_t result = rotl(state.s1 * 5, 7) * 9;
+inline uint64_t gen_rand(uint64_t * state) {
+  const uint64_t result = rotl(state[1] * 5, 7) * 9;
   //printf("r:%lu s:%lu %lu %lu %lu\n", result, state[0], state[1], state[2], state[3]);
 
   const uint64_t t = state.s1 << 17;
 
-  state.s2 ^= state.s0;
-  state.s3 ^= state.s1;
-  state.s1 ^= state.s2;
-  state.s0 ^= state.s3;
+  state[2] ^= state[0];
+  state[3] ^= state[1];
+  state[1] ^= state[2];
+  state[0] ^= state[3];
 
-  state.s2 ^= t;
+  state[2] ^= t;
 
-  state.s3 = rotl(state.s3, 45);
+  state[3] = rotl(state[3], 45);
 
   return result;
 }
 
-__host__
-inline uint64_t gen_rand(uint64_t * state) {
-  RNGState state_struct{state[0], state[1], state[2], state[3]};
-  return gen_rand(state_struct);
+__device__
+inline uint64_t gen_rand(RNGState * state) {
+  return gen_rand(*(state->s));
 }
 
 class Xoshiro {

@@ -1,7 +1,6 @@
 #ifndef DUST_DUST_HPP
 #define DUST_DUST_HPP
 
-#include "cuda.hpp"
 #include "rng.hpp"
 
 #include <algorithm>
@@ -23,7 +22,6 @@ void run_particles(T** models,
                   real_t** particle_y,
                   real_t** particle_y_swap,
                   uint64_t* rng_state,
-                  dust::distr::rnorm<real_t>* rnorm_buffers,
                   size_t y_len,
                   size_t n_particles,
                   size_t step,
@@ -37,8 +35,7 @@ void run_particles(T** models,
       models[p_idx]->update(curr_step,
                             particle_y[p_idx],
                             particle_y_swap[p_idx],
-                            rng,
-                            rnorm_buffers + p_idx);
+                            rng);
       __syncwarp();
 
       curr_step++;
@@ -61,25 +58,25 @@ public:
   Particle(init_t data, size_t step) :
     _step(step) {
       // Copy the model
-      cdpErrchk(cudaMallocManaged((void** )&_model, sizeof(T)));
+      CUDA_CALL(cudaMallocManaged((void** )&_model, sizeof(T)));
       *_model = T(data);
       cudaDeviceSynchronize();
 
       _y = std::vector<real_t>(_model->initial(_step));
       _y_swap = std::vector<real_t>(_model->size());
 
-      cdpErrchk(cudaMalloc((void** )&_y_device, _y.size() * sizeof(real_t)));
-      cdpErrchk(cudaMemcpy(_y_device, _y.data(), _y.size() * sizeof(real_t),
+      CUDA_CALL(cudaMalloc((void** )&_y_device, _y.size() * sizeof(real_t)));
+      CUDA_CALL(cudaMemcpy(_y_device, _y.data(), _y.size() * sizeof(real_t),
               cudaMemcpyDefault));
-      cdpErrchk(cudaMalloc((void** )&_y_swap_device, _y_swap.size() * sizeof(real_t)));
-      cdpErrchk(cudaMemcpy(_y_swap_device, _y_swap.data(), _y_swap.size() * sizeof(real_t),
+      CUDA_CALL(cudaMalloc((void** )&_y_swap_device, _y_swap.size() * sizeof(real_t)));
+      CUDA_CALL(cudaMemcpy(_y_swap_device, _y_swap.data(), _y_swap.size() * sizeof(real_t),
               cudaMemcpyDefault));
   }
 
   ~Particle() {
-    cdpErrchk(cudaFree(_y_device));
-    cdpErrchk(cudaFree(_y_swap_device));
-    cdpErrchk(cudaFree(_model));
+    CUDA_CALL(cudaFree(_y_device));
+    CUDA_CALL(cudaFree(_y_swap_device));
+    CUDA_CALL(cudaFree(_model));
   }
 
   Particle(Particle&& other) noexcept :
@@ -100,8 +97,8 @@ public:
 
   Particle& operator=(Particle&& other) {
     if (this != &other) {
-      cdpErrchk(cudaFree(_y_device));
-      cdpErrchk(cudaFree(_y_swap_device));
+      CUDA_CALL(cudaFree(_y_device));
+      CUDA_CALL(cudaFree(_y_swap_device));
 
       std::swap(_model, other._model);
       std::swap(_step, other._step);
@@ -182,17 +179,17 @@ private:
   real_t * _y_swap_device;
 
   void y_to_host() {
-    cdpErrchk(cudaMemcpy(_y.data(), _y_device, _y.size() * sizeof(real_t),
+    CUDA_CALL(cudaMemcpy(_y.data(), _y_device, _y.size() * sizeof(real_t),
               cudaMemcpyDefault));
     cudaDeviceSynchronize();
   }
   void y_swap_to_device() {
-    cdpErrchk(cudaMemcpy(_y_swap_device, _y_swap.data(), _y_swap.size() * sizeof(real_t),
+    CUDA_CALL(cudaMemcpy(_y_swap_device, _y_swap.data(), _y_swap.size() * sizeof(real_t),
               cudaMemcpyDefault));
     cudaDeviceSynchronize();
   }
   void y_to_device() {
-    cdpErrchk(cudaMemcpy(_y_device, _y.data(), _y.size() * sizeof(real_t),
+    CUDA_CALL(cudaMemcpy(_y_device, _y.data(), _y.size() * sizeof(real_t),
               cudaMemcpyDefault));
     cudaDeviceSynchronize();
   }
@@ -219,9 +216,9 @@ public:
 
   // NB - if you call cudaDeviceReset() this destructor will segfault
   ~Dust() {
-    cdpErrchk(cudaFree(_model_addrs));
-    cdpErrchk(cudaFree(_particle_y_addrs));
-    cdpErrchk(cudaFree(_particle_y_swap_addrs));
+    CUDA_CALL(cudaFree(_model_addrs));
+    CUDA_CALL(cudaFree(_particle_y_addrs));
+    CUDA_CALL(cudaFree(_particle_y_swap_addrs));
   }
 
   void reset(const init_t data, const size_t step) {
@@ -278,7 +275,6 @@ public:
                                             _particle_y_addrs,
                                             _particle_y_swap_addrs,
                                             _rng.state_ptr(),
-                                            _rng.rnorm_ptr(),
                                             _particles.front().size(), //FIXME: are sizes ever different?
                                             _particles.size(),
                                             this->step(),
@@ -371,9 +367,9 @@ private:
     _particles.clear();
     _particles.reserve(n_particles);
 
-    cdpErrchk(cudaFree(_particle_y_addrs));
-    cdpErrchk(cudaFree(_particle_y_swap_addrs));
-    cdpErrchk(cudaFree(_model_addrs));
+    CUDA_CALL(cudaFree(_particle_y_addrs));
+    CUDA_CALL(cudaFree(_particle_y_swap_addrs));
+    CUDA_CALL(cudaFree(_model_addrs));
 
     std::vector<real_t*> y_ptrs;
     std::vector<real_t*> y_swap_ptrs;
@@ -384,16 +380,16 @@ private:
       y_swap_ptrs.push_back(_particles[i].y_swap_addr());
       model_ptrs.push_back(_particles[i].model_addr());
     }
-    cdpErrchk(cudaMalloc((void** )&_particle_y_addrs, y_ptrs.size() * sizeof(real_t*)));
-    cdpErrchk(cudaMemcpy(_particle_y_addrs, y_ptrs.data(), y_ptrs.size() * sizeof(real_t*),
+    CUDA_CALL(cudaMalloc((void** )&_particle_y_addrs, y_ptrs.size() * sizeof(real_t*)));
+    CUDA_CALL(cudaMemcpy(_particle_y_addrs, y_ptrs.data(), y_ptrs.size() * sizeof(real_t*),
 	              cudaMemcpyHostToDevice));
-    cdpErrchk(cudaMalloc((void** )&_particle_y_swap_addrs, y_swap_ptrs.size() * sizeof(real_t*)));
-    cdpErrchk(cudaMemcpy(_particle_y_swap_addrs, y_swap_ptrs.data(), y_swap_ptrs.size() * sizeof(real_t*),
+    CUDA_CALL(cudaMalloc((void** )&_particle_y_swap_addrs, y_swap_ptrs.size() * sizeof(real_t*)));
+    CUDA_CALL(cudaMemcpy(_particle_y_swap_addrs, y_swap_ptrs.data(), y_swap_ptrs.size() * sizeof(real_t*),
 	              cudaMemcpyHostToDevice));
 
     // Copy the model
-    cdpErrchk(cudaMalloc((void** )&_model_addrs, model_ptrs.size() * sizeof(T*)));
-    cdpErrchk(cudaMemcpy(_model_addrs, model_ptrs.data(), model_ptrs.size() * sizeof(T*),
+    CUDA_CALL(cudaMalloc((void** )&_model_addrs, model_ptrs.size() * sizeof(T*)));
+    CUDA_CALL(cudaMemcpy(_model_addrs, model_ptrs.data(), model_ptrs.size() * sizeof(T*),
 	              cudaMemcpyHostToDevice));
 
     const size_t n = n_state_full();

@@ -3,6 +3,7 @@
 typedef float real_t;
 typedef int int_t;
 
+#include "gpu/cuda.cuh"
 #include "gpu/dust.hpp"
 #include "gpu/interface.hpp"
 
@@ -43,7 +44,7 @@ public:
   }
   __device__
   void update(size_t step, const real_t * state, real_t * state_next,
-              dust::RNGState& rng_state, dust::distr::rnorm<real_t>* rnorm) {
+              dust::RNGState& rng_state) {
     const real_t S = state[0];
     const real_t I = state[1];
     const real_t R = state[2];

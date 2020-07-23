@@ -26,6 +26,16 @@ inline void BoxMuller(RNGState& rng_state, real_t* d0, real_t* d1) {
 }
 
 template <typename real_t>
+__device__
+inline real_t rnorm(RNGState& rng_state, real_t mean, real_t sd) {
+  real_t r0, r1; // r1 currently thrown away
+  BoxMuller(rng_state, &r0, &r1);
+  return(r0 * sd + mean);
+}
+
+// Device class which saves both values from the BoxMuller transform
+// Not yet used
+template <typename real_t>
 class rnorm {
  public:
   __device__

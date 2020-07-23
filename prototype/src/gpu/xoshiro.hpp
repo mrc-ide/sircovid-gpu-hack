@@ -49,8 +49,8 @@ inline uint64_t gen_rand(uint64_t * state) {
 }
 
 __device__
-inline uint64_t gen_rand(RNGState * state) {
-  return gen_rand(*(state->s));
+inline uint64_t gen_rand(RNGState& state) {
+  return gen_rand(*(state.s));
 }
 
 class Xoshiro {

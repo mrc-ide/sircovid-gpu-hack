@@ -21,7 +21,7 @@ __global__
 void run_particles(T** models,
                   real_t** particle_y,
                   real_t** particle_y_swap,
-                  uint64_t* rng_state,
+                  RNGptr rng_state,
                   size_t y_len,
                   size_t n_particles,
                   size_t step,
@@ -29,21 +29,23 @@ void run_particles(T** models,
   int index = blockIdx.x * blockDim.x + threadIdx.x;
   int stride = blockDim.x * gridDim.x;
   for (int p_idx = index; p_idx < n_particles; p_idx += stride) {
-    dust::RNGState rng = dust::loadRNG(rng_state, p_idx, n_particles);
+    dust::RNGState rng = dust::loadRNG(rng_state, p_idx);
     int curr_step = step;
     while (curr_step < step_end) {
+      // Run the model forward a step
       models[p_idx]->update(curr_step,
                             particle_y[p_idx],
                             particle_y_swap[p_idx],
                             rng);
       __syncwarp();
-
       curr_step++;
+
+      // Update state
       real_t* tmp = particle_y[p_idx];
       particle_y[p_idx] = particle_y_swap[p_idx];
       particle_y_swap[p_idx] = tmp;
     }
-    dust::putRNG(rng, rng_state, p_idx, n_particles);
+    dust::putRNG(rng, rng_state, p_idx);
   }
 }
 

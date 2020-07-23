@@ -19,11 +19,16 @@
 
 namespace dust {
 
+struct RNGState {
+  uint64_t s[XOSHIRO_WIDTH];
+};
+
 __host__ __device__
 static inline uint64_t rotl(const uint64_t x, int k) {
 	return (x << k) | (x >> (64 - k));
 }
 
+// Call with non-interleaved state only
 __host__ __device__
 inline uint64_t gen_rand(uint64_t * state) {
   const uint64_t result = rotl(state[1] * 5, 7) * 9;
@@ -41,6 +46,11 @@ inline uint64_t gen_rand(uint64_t * state) {
   state[3] = rotl(state[3], 45);
 
   return result;
+}
+
+__device__
+inline uint64_t gen_rand(RNGState& state) {
+  return gen_rand(state.s);
 }
 
 class Xoshiro {
@@ -77,6 +87,8 @@ public:
   void jump();
   __host__
   void long_jump();
+  __host__
+  void set_state(const std::vector<uint64_t>& new_state);
 
   // Get state
   __host__
@@ -88,16 +100,14 @@ private:
 };
 
 __device__
-inline double device_unif_rand(uint64_t * state) {
-  double rand =
-    (__ddiv_rn(__ull2double_rn(gen_rand(state)),
-               __ull2double_rn(UINT64_MAX)));
-  //printf("r:%f s:%lu %lu %lu %lu\n", rand, state[0], state[1], state[2], state[3]);
+inline double device_unif_rand(RNGState& state) {
+  const double max_double_val = __ull2double_rn(UINT64_MAX);
+  double rand = (__ddiv_rn(__ull2double_rn(gen_rand(state)), max_double_val));
   return rand;
 }
 
 __device__
-inline float device_unif_randf(uint64_t * state) {
+inline float device_unif_randf(RNGState& state) {
   return(__double2float_rn(device_unif_rand(state)));
 }
 
@@ -123,6 +133,15 @@ inline void Xoshiro::set_seed(uint64_t seed) {
   _state[1] = splitmix64(_state[0]);
   _state[2] = splitmix64(_state[1]);
   _state[3] = splitmix64(_state[2]);
+}
+
+// This is used when reading the state back from the device
+__host__
+void Xoshiro::set_state(const std::vector<uint64_t>& new_state) {
+  _state[0] = new_state[0];
+  _state[1] = new_state[1];
+  _state[2] = new_state[2];
+  _state[3] = new_state[3];
 }
 
 /* This is the jump function for the generator. It is equivalent

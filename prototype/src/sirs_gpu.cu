@@ -3,6 +3,7 @@
 typedef float real_t;
 typedef int int_t;
 
+#include "gpu/cuda.cuh"
 #include "gpu/dust.hpp"
 #include "gpu/interface.hpp"
 
@@ -42,22 +43,16 @@ public:
     return state;
   }
   __device__
-  void update(size_t step, const real_t * state, uint64_t * rng_state, real_t * state_next) {
-    // TODO: state and state_next will not be coalesced read/write
-    // A 2D array, transposed, would be better
-    // Check that rng_state ends up in L1 cache
+  void update(size_t step, const real_t * state, real_t * state_next,
+              dust::RNGState& rng_state) {
     const real_t S = state[0];
     const real_t I = state[1];
     const real_t R = state[2];
     real_t N = S + I + R;
     real_t n_IR = dust::distr::rbinom<real_t, int_t>(rng_state, rintf(I), internal.p_IR);
     real_t n_RS = dust::distr::rbinom<real_t, int_t>(rng_state, rintf(R), internal.p_RS);
-    //real_t p_SI = 1 - std::exp(- internal.beta * I / (real_t) N);
-    // NB - this is specific to a float, need to think about this if real_t = double
-    // exp should just be overloaded
-    real_t p_SI = 1 - expf(- internal.beta * I / (real_t) N);
+    real_t p_SI = 1 - exp(- internal.beta * I / (real_t) N);
     real_t n_SI = dust::distr::rbinom<real_t, int_t>(rng_state, rintf(S), p_SI);
-    // NB - Make sure that state is read only once, and state_next is written only once
     state_next[2] = R + n_IR - n_RS;
     state_next[1] = I + n_SI - n_IR;
     state_next[0] = S - n_SI + n_RS;

@@ -18,11 +18,9 @@ static void HandleCUDAError(const char *file,
         if (status == cudaErrorUnknown)
         {
             printf("%s(%i) An Unknown CUDA Error Occurred :(\n", file, line);
-            getchar();
             exit(1);
         }
         printf("%s(%i) CUDA Error Occurred;\n%s\n", file, line, cudaGetErrorString(status));
-        getchar();
         exit(1);
     }
 }
